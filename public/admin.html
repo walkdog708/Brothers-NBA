@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brothers NBA - Admin</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+          theme: {
+            extend: {
+              colors: {
+                brand: {
+                  50: "#f8fafc",
+                  100: "#e2e8f0",
+                  300: "#94a3b8",
+                  500: "#475569",
+                  700: "#1e293b",
+                  900: "#0f172a"
+                },
+                accent: {
+                  400: "#fb923c",
+                  500: "#f97316",
+                  600: "#ea580c"
+                },
+                gold: {
+                  300: "#fde68a",
+                  400: "#facc15",
+                  500: "#eab308",
+                  600: "#ca8a04"
+                }
+              },
+              boxShadow: {
+                card: "0 8px 24px rgba(15, 23, 42, 0.08)"
+              }
+            }
+          }
+        };
+    </script>
+
+    <style>
+        .message {
+          margin-top: 14px;
+          font-weight: 600;
+        }
+
+        .message.error {
+          color: #b91c1c;
+        }
+
+        .message.success {
+          color: #15803d;
+        }
+
+        .message.info {
+          color: #1d4ed8;
+        }
+
+        .team-options {
+          max-height: 260px;
+          overflow-y: auto;
+        }
+
+        .team-option img,
+        .team-preview img {
+          width: 28px;
+          height: 28px;
+          object-fit: contain;
+          flex-shrink: 0;
+        }
+
+        .team-preview {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-weight: 600;
+        }
+        .admin-tab-btn.active {
+          background: #0f172a;
+          color: white;
+        }
+
+        .admin-tab-panel.hidden {
+          display: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen">
+<div id="sharedHeader"></div>
+
+<main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <!-- Hero -->
+    <section class="rounded-3xl bg-gradient-to-r from-slate-950 via-slate-900 to-amber-500 text-white shadow-2xl p-8 border border-amber-300/30">
+        <div class="max-w-3xl">
+            <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-200">Brothers Pool</p>
+            <h1 class="mt-2 text-4xl sm:text-5xl font-black tracking-tight">
+                Admin <span class="text-amber-200">Dashboard</span>
+            </h1>
+            <p class="mt-3 text-base sm:text-lg text-white/90">
+                Create, review, and finalize NBA playoff series.
+            </p>
+        </div>
+    </section>
+
+    <!-- Tabs -->
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-xl p-4">
+        <div class="flex flex-wrap gap-2">
+            <button
+                    type="button"
+                    class="admin-tab-btn active inline-flex items-center justify-center rounded-xl bg-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
+                    data-tab="seriesTab"
+            >
+                Series Management
+            </button>
+
+            <button
+                    type="button"
+                    class="admin-tab-btn inline-flex items-center justify-center rounded-xl bg-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
+                    data-tab="usersTab"
+            >
+                User Management
+            </button>
+        </div>
+    </section>
+
+    <!-- SERIES TAB -->
+    <div id="seriesTab" class="admin-tab-panel space-y-6">
+        <!-- Playoff Seed Assignments -->
+        <section class="bg-white border border-amber-200 rounded-2xl shadow-xl p-6">
+            <div class="mb-5">
+                <h2 class="text-2xl font-bold text-slate-900">Playoff Seed Assignments</h2>
+                <p class="mt-1 text-sm text-slate-600">
+                    Assign East and West playoff teams to seeds 1 through 8 for the selected season.
+                </p>
+            </div>
+
+            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
+                <div class="w-full max-w-xs">
+                    <label for="seedSeason" class="block text-sm font-semibold text-slate-900 mb-2">Season</label>
+                    <input
+                            id="seedSeason"
+                            type="number"
+                            value="2026"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                    <button
+                            id="loadSeedsBtn"
+                            type="button"
+                            class="inline-flex items-center justify-center rounded-xl bg-slate-800 px-5 py-2.5 text-white font-semibold shadow-lg transition hover:bg-slate-950"
+                    >
+                        Load Seeds
+                    </button>
+                    <button
+                            id="saveSeedsBtn"
+                            type="button"
+                            class="inline-flex items-center justify-center rounded-xl bg-orange-500 px-5 py-2.5 text-white font-semibold shadow-lg transition hover:bg-orange-600"
+                    >
+                        Save Seeds
+                    </button>
+                </div>
+            </div>
+
+            <div id="seedMessage" class="message"></div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 mt-5">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                    <h3 class="text-xl font-bold text-slate-900 mb-4">Eastern Conference</h3>
+                    <div id="eastSeedList" class="space-y-3"></div>
+                </div>
+
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                    <h3 class="text-xl font-bold text-slate-900 mb-4">Western Conference</h3>
+                    <div id="westSeedList" class="space-y-3"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white border border-amber-200 rounded-2xl shadow-xl p-6">
+            <div class="mb-5">
+                <h2 class="text-2xl font-bold text-slate-900">Season Tiebreaker</h2>
+                <p class="mt-1 text-sm text-slate-600">
+                    Set the actual combined points scored in the NBA Finals clinching game.
+                    This will be used to break ties in the final overall playoff standings.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="tiebreakerSeason" class="block text-sm font-semibold text-slate-900 mb-2">Season</label>
+                    <input
+                            id="tiebreakerSeason"
+                            type="number"
+                            value="2026"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                </div>
+
+                <div>
+                    <label for="actualTiebreakerPoints" class="block text-sm font-semibold text-slate-900 mb-2">
+                        Actual Tiebreaker Points
+                    </label>
+                    <input
+                            id="actualTiebreakerPoints"
+                            type="number"
+                            min="50"
+                            max="400"
+                            step="1"
+                            placeholder="e.g. 212"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                </div>
+            </div>
+
+            <div class="mt-5 flex flex-col sm:flex-row gap-3">
+                <button
+                        id="loadTiebreakerBtn"
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-xl bg-slate-800 px-5 py-2.5 text-white font-semibold shadow-lg transition hover:bg-slate-950"
+                >
+                    Load Tiebreaker
+                </button>
+
+                <button
+                        id="saveTiebreakerBtn"
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-xl bg-orange-500 px-5 py-2.5 text-white font-semibold shadow-lg transition hover:bg-orange-600"
+                >
+                    Save Tiebreaker
+                </button>
+            </div>
+
+            <div id="tiebreakerMessage" class="message"></div>
+        </section>
+
+        <!-- Create Series -->
+        <section class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6">
+            <div class="mb-5">
+                <h2 class="text-2xl font-bold text-slate-900">Create Series</h2>
+                <p class="mt-1 text-sm text-slate-600">Set up a playoff series, assign teams, and define the lock time.</p>
+            </div>
+
+            <form id="seriesForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="season" class="block text-sm font-semibold text-slate-900 mb-2">Season</label>
+                    <input
+                            id="season"
+                            type="number"
+                            value="2026"
+                            required
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                </div>
+
+                <div>
+                    <label for="round" class="block text-sm font-semibold text-slate-900 mb-2">Round</label>
+                    <select
+                            id="round"
+                            required
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    >
+                        <option value="1">1 - First Round</option>
+                        <option value="2">2 - Conference Semifinals</option>
+                        <option value="3">3 - Conference Finals</option>
+                        <option value="4">4 - NBA Finals</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="conference" class="block text-sm font-semibold text-slate-900 mb-2">Conference</label>
+                    <select
+                            id="conference"
+                            required
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    >
+                        <option value="EAST">EAST</option>
+                        <option value="WEST">WEST</option>
+                        <option value="FINALS">FINALS</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="seriesSlot" class="block text-sm font-semibold text-slate-900 mb-2">Series Matchup</label>
+                    <select
+                            id="seriesSlot"
+                            required
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    >
+                        <option value="">Select matchup</option>
+                        <option value="1v8">1 vs 8</option>
+                        <option value="2v7">2 vs 7</option>
+                        <option value="3v6">3 vs 6</option>
+                        <option value="4v5">4 vs 5</option>
+                    </select>
+                </div>
+
+                <input id="higherSeed" type="hidden" required />
+                <input id="lowerSeed" type="hidden" required />
+
+                <div class="md:col-span-2">
+                    <label for="matchupLabel" class="block text-sm font-semibold text-slate-900 mb-2">Matchup Label</label>
+                    <input
+                            id="matchupLabel"
+                            type="text"
+                            placeholder="Auto-generated"
+                            readonly
+                            required
+                            class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-slate-900 outline-none"
+                    />
+                </div>
+
+                <div>
+                    <label for="higherSeedTeam" class="block text-sm font-semibold text-slate-900 mb-2">Higher Seed Team</label>
+                    <input id="higherSeedTeam" type="hidden" required />
+                    <button
+                            type="button"
+                            id="higherSeedTeamBtn"
+                            class="w-full inline-flex items-center justify-center rounded-xl bg-slate-800 px-4 py-2.5 text-white font-semibold shadow-md transition hover:bg-slate-950"
+                    >
+                        Select team
+                    </button>
+                    <div id="higherSeedTeamPreview" class="mt-3"></div>
+                    <div id="higherSeedTeamOptions" class="team-options hidden mt-3 rounded-xl border border-slate-200 bg-white p-2 shadow-sm"></div>
+                </div>
+
+                <div>
+                    <label for="lowerSeedTeam" class="block text-sm font-semibold text-slate-900 mb-2">Lower Seed Team</label>
+                    <input id="lowerSeedTeam" type="hidden" required />
+                    <button
+                            type="button"
+                            id="lowerSeedTeamBtn"
+                            class="w-full inline-flex items-center justify-center rounded-xl bg-slate-800 px-4 py-2.5 text-white font-semibold shadow-md transition hover:bg-slate-950"
+                    >
+                        Select team
+                    </button>
+                    <div id="lowerSeedTeamPreview" class="mt-3"></div>
+                    <div id="lowerSeedTeamOptions" class="team-options hidden mt-3 rounded-xl border border-slate-200 bg-white p-2 shadow-sm"></div>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label for="lockAt" class="block text-sm font-semibold text-slate-900 mb-2">Lock Date/Time</label>
+                    <input
+                            id="lockAt"
+                            type="datetime-local"
+                            required
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                </div>
+
+                <div class="md:col-span-2">
+                    <button
+                            type="submit"
+                            class="w-full inline-flex items-center justify-center rounded-xl bg-orange-500 px-5 py-2.5 text-white font-semibold shadow-lg transition hover:bg-orange-600"
+                    >
+                        Create Series
+                    </button>
+                </div>
+            </form>
+
+            <div id="formMessage" class="message"></div>
+        </section>
+
+        <!-- Existing Series -->
+        <section class="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-200 bg-slate-50">
+                <h2 class="text-2xl font-bold text-slate-900">Existing Series</h2>
+                <p class="mt-1 text-sm text-slate-600">Load series by season and round, then review or finalize them.</p>
+            </div>
+
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="filterSeason" class="block text-sm font-semibold text-slate-900 mb-2">Season</label>
+                        <input
+                                id="filterSeason"
+                                type="number"
+                                value="2026"
+                                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                        />
+                    </div>
+
+                    <div>
+                        <label for="filterRound" class="block text-sm font-semibold text-slate-900 mb-2">Round</label>
+                        <select
+                                id="filterRound"
+                                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                        >
+                            <option value="1">1 - First Round</option>
+                            <option value="2">2 - Conference Semifinals</option>
+                            <option value="3">3 - Conference Finals</option>
+                            <option value="4">4 - NBA Finals</option>
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-100 text-slate-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Series ID</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Slot</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Matchup</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Status</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Winner</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Games</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Lock At</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Edit</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Finalize</th>
+                    </tr>
+                    </thead>
+                    <tbody id="seriesTableBody" class="divide-y divide-slate-200 bg-white">
+                    <tr>
+                        <td colspan="9" class="px-4 py-6 text-center text-slate-500">
+                            No series loaded yet.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- USERS TAB -->
+    <div id="usersTab" class="admin-tab-panel hidden space-y-6">
+        <!-- Create User -->
+        <section class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6">
+            <div class="mb-5">
+                <h2 class="text-2xl font-bold text-slate-900">Create User</h2>
+                <p class="mt-1 text-sm text-slate-600">
+                    Add a new user and optionally grant admin access.
+                </p>
+            </div>
+
+            <form id="createUserForm" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div>
+                    <label for="newFirstName" class="block text-sm font-semibold text-slate-900 mb-2">First Name</label>
+                    <input
+                            id="newFirstName"
+                            type="text"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                </div>
+
+                <div>
+                    <label for="newLastName" class="block text-sm font-semibold text-slate-900 mb-2">Last Name</label>
+                    <input
+                            id="newLastName"
+                            type="text"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                </div>
+
+                <div>
+                    <label for="newUsername" class="block text-sm font-semibold text-slate-900 mb-2">Username</label>
+                    <input
+                            id="newUsername"
+                            type="text"
+                            required
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                </div>
+
+                <div>
+                    <label for="newEmail" class="block text-sm font-semibold text-slate-900 mb-2">Email</label>
+                    <input
+                            id="newEmail"
+                            type="email"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                </div>
+
+                <div>
+                    <label for="newPassword" class="block text-sm font-semibold text-slate-900 mb-2">Temporary Password</label>
+                    <input
+                            id="newPassword"
+                            type="text"
+                            required
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                    />
+                </div>
+
+                <div class="flex items-end">
+                    <label class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5">
+                        <input id="newIsAdmin" type="checkbox" class="rounded border-slate-300" />
+                        <span class="text-sm font-semibold text-slate-800">Admin User</span>
+                    </label>
+                </div>
+
+                <div class="md:col-span-2 xl:col-span-4">
+                    <button
+                            type="submit"
+                            class="inline-flex items-center justify-center rounded-xl bg-orange-500 px-5 py-2.5 text-white font-semibold shadow-lg transition hover:bg-orange-600"
+                    >
+                        Create User
+                    </button>
+                </div>
+            </form>
+
+            <div id="userFormMessage" class="message"></div>
+        </section>
+
+        <!-- Existing Users -->
+        <section class="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Existing Users</h2>
+                    <p class="mt-1 text-sm text-slate-600">
+                        Manage activation, admin access, and password resets.
+                    </p>
+                </div>
+
+                <button
+                        id="loadUsersBtn"
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-xl bg-slate-800 px-5 py-2.5 text-white font-semibold shadow-lg transition hover:bg-slate-950"
+                >
+                    Load Users
+                </button>
+            </div>
+
+            <div id="usersMessage" class="message px-6"></div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-100 text-slate-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Name</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Username</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Email</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Status</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Role</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Password</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="usersTableBody" class="divide-y divide-slate-200 bg-white">
+                    <tr>
+                        <td colspan="7" class="px-4 py-6 text-center text-slate-500">
+                            No users loaded yet.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</main>
+
+<script src="/js/nba-teams.js"></script>
+<script src="/js/admin.js"></script>
+<script src="/js/shared-header.js"></script>
+</body>
+</html>

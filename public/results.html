@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brothers NBA - Results</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+          theme: {
+            extend: {
+              colors: {
+                brand: {
+                  50: "#f8fafc",
+                  100: "#e2e8f0",
+                  300: "#94a3b8",
+                  500: "#475569",
+                  700: "#1e293b",
+                  900: "#0f172a"
+                },
+                accent: {
+                  400: "#fb923c",
+                  500: "#f97316",
+                  600: "#ea580c"
+                },
+                gold: {
+                  300: "#fde68a",
+                  400: "#facc15",
+                  500: "#eab308",
+                  600: "#ca8a04"
+                }
+              },
+              boxShadow: {
+                card: "0 8px 24px rgba(15, 23, 42, 0.08)"
+              }
+            }
+          }
+        };
+    </script>
+
+    <style>
+        .message {
+          margin-top: 14px;
+          font-weight: 600;
+        }
+
+        .message.error {
+          color: #b91c1c;
+        }
+
+        .message.success {
+          color: #15803d;
+        }
+
+        .message.info {
+          color: #1d4ed8;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen">
+<div id="sharedHeader"></div>
+
+<main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <section class="rounded-3xl bg-gradient-to-r from-slate-950 via-slate-900 to-amber-500 text-white shadow-2xl p-8 border border-amber-300/30">
+        <div class="max-w-3xl">
+            <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-200">Brothers Pool</p>
+            <h1 class="mt-2 text-4xl sm:text-5xl font-black tracking-tight">
+                <span class="text-amber-200">Results</span>
+            </h1>
+            <p class="mt-3 text-base sm:text-lg text-white/90">
+                See your picks and scoring by round.
+            </p>
+        </div>
+    </section>
+
+    <section class="bg-white border border-amber-200 rounded-2xl shadow-xl p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div>
+                <label for="season" class="block text-sm font-semibold text-slate-900 mb-2">Season</label>
+                <input
+                        id="season"
+                        type="number"
+                        value="2026"
+                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                />
+            </div>
+
+            <div>
+                <label for="round" class="block text-sm font-semibold text-slate-900 mb-2">Round</label>
+                <select
+                        id="round"
+                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                >
+                    <option value="1">1 - First Round</option>
+                    <option value="2">2 - Conference Semifinals</option>
+                    <option value="3">3 - Conference Finals</option>
+                    <option value="4">4 - NBA Finals</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="summary" class="message mt-5"></div>
+    </section>
+
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+        <div class="px-4 sm:px-6 py-5 border-b border-slate-200 bg-slate-50">
+            <h2 class="text-xl font-bold text-slate-900">Round Results</h2>
+            <p class="mt-1 text-sm text-slate-600">Review your picks, winners, bonuses, and points earned.</p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="px-4 sm:px-6 pt-4 bg-slate-50 border-b border-slate-200">
+            <div class="flex flex-wrap gap-2">
+                <button
+                        id="tabMyResults"
+                        type="button"
+                        data-view="my"
+                        class="rounded-t-xl px-4 py-2 text-sm font-semibold border border-slate-200 border-b-white bg-white text-slate-900 shadow-sm"
+                >
+                    My Results
+                </button>
+
+                <button
+                        id="tabAllResults"
+                        type="button"
+                        data-view="all"
+                        class="rounded-t-xl px-4 py-2 text-sm font-semibold border border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed"
+                        disabled
+                >
+                    All Results
+                </button>
+            </div>
+        </div>
+
+        <!-- MY RESULTS VIEW -->
+        <div id="myResultsView">
+            <!-- Mobile cards -->
+            <div id="resultsCardsMobile" class="block md:hidden p-4 space-y-3">
+                <div class="rounded-xl border border-slate-200 bg-white px-4 py-6 text-center text-slate-500">
+                    No results loaded.
+                </div>
+            </div>
+
+            <!-- Desktop table -->
+            <div class="hidden md:block overflow-x-auto">
+                <table class="min-w-full text-xs lg:text-sm">
+                    <thead class="bg-slate-100 text-slate-700">
+                    <tr>
+                        <th class="px-3 lg:px-4 py-3 text-left font-semibold border-b border-slate-200">Matchup</th>
+                        <th class="px-3 py-3 text-center font-semibold border-b border-slate-200 whitespace-nowrap">Pick</th>
+                        <th class="px-3 py-3 text-center font-semibold border-b border-slate-200 whitespace-nowrap">Act</th>
+                        <th class="px-3 py-3 text-center font-semibold border-b border-slate-200 whitespace-nowrap">Conf</th>
+                        <th class="px-3 py-3 text-center font-semibold border-b border-slate-200 whitespace-nowrap">Bonus</th>
+                        <th class="px-3 py-3 text-center font-semibold border-b border-slate-200 whitespace-nowrap">Pts</th>
+                    </tr>
+                    </thead>
+                    <tbody id="resultsTableBody" class="divide-y divide-slate-200 bg-white">
+                    <tr>
+                        <td colspan="6" class="px-4 py-6 text-center text-slate-500">
+                            No results loaded.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ALL RESULTS VIEW -->
+        <div id="allResultsView" class="hidden">
+            <div id="allResultsContainer" class="p-4 sm:p-6 space-y-4">
+                <div class="rounded-xl border border-slate-200 bg-white px-4 py-6 text-center text-slate-500">
+                    All Results will appear once this round locks.
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="/js/nba-teams.js"></script>
+<script src="/js/results.js"></script>
+<script src="/js/shared-header.js"></script>
+</body>
+</html>

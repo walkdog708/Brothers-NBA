@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brothers NBA - My Picks</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+          theme: {
+            extend: {
+              colors: {
+                brand: {
+                  50: "#f8fafc",
+                  100: "#e2e8f0",
+                  300: "#94a3b8",
+                  500: "#475569",
+                  700: "#1e293b",
+                  900: "#0f172a"
+                },
+                accent: {
+                  400: "#fb923c",
+                  500: "#f97316",
+                  600: "#ea580c"
+                },
+                gold: {
+                  300: "#fde68a",
+                  400: "#facc15",
+                  500: "#eab308",
+                  600: "#ca8a04"
+                }
+              },
+              boxShadow: {
+                card: "0 8px 24px rgba(15, 23, 42, 0.08)"
+              }
+            }
+          }
+        };
+    </script>
+
+    <style>
+        .message {
+          margin-top: 14px;
+          font-weight: 600;
+        }
+
+        .message.error {
+          color: #b91c1c;
+        }
+
+        .message.success {
+          color: #15803d;
+        }
+
+        .message.info {
+          color: #1d4ed8;
+        }
+
+        .team-btn-logo {
+          width: 28px;
+          height: 28px;
+          object-fit: contain;
+          flex-shrink: 0;
+        }
+
+        .team-btn-text {
+          display: inline-flex;
+          align-items: center;
+          font-weight: 700;
+        }
+
+        @media (max-width: 767px) {
+          .pick-buttons {
+            grid-template-columns: 1fr !important;
+          }
+
+          .series-form-row {
+            grid-template-columns: 1fr !important;
+          }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen">
+<div id="sharedHeader"></div>
+
+<main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <!-- Hero -->
+    <section class="rounded-3xl bg-gradient-to-r from-slate-950 via-slate-900 to-amber-500 text-white shadow-2xl p-8 border border-amber-300/30">
+        <div class="max-w-3xl">
+            <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-200">Brothers Pool</p>
+            <h1 class="mt-2 text-4xl sm:text-5xl font-black tracking-tight">
+                My <span class="text-amber-200">Picks</span>
+            </h1>
+            <p class="mt-3 text-base sm:text-lg text-white/90">
+                Submit your NBA playoff round picks.
+            </p>
+        </div>
+    </section>
+
+    <!-- Round selector -->
+    <section class="bg-white border border-amber-200 rounded-2xl shadow-xl p-6">
+        <div class="max-w-sm">
+            <label for="round" class="block text-sm font-semibold text-slate-900 mb-2">Round</label>
+            <select
+                    id="round"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+            >
+                <option value="1">1 - First Round</option>
+                <option value="2">2 - Conference Semifinals</option>
+                <option value="3">3 - Conference Finals</option>
+                <option value="4">4 - NBA Finals</option>
+            </select>
+        </div>
+
+        <div id="roundStatusBanner" class="hidden mt-5 rounded-xl px-4 py-3 font-semibold"></div>
+        <div id="roundStatusSubtext" class="mt-3 text-sm text-slate-600"></div>
+    </section>
+
+    <!-- Series list -->
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6">
+        <div id="seriesContainer" class="space-y-4">
+            <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-slate-600">
+                Select a round to view available series and your saved picks.
+            </div>
+        </div>
+
+        <div id="tiebreakerSection" class="hidden mt-6 rounded-2xl border border-amber-200 bg-amber-50/50 p-5">
+            <h3 class="text-lg font-bold text-slate-900">Season Tiebreaker</h3>
+            <p class="mt-2 text-sm text-slate-600">
+                Predict the total combined points scored in the NBA Finals clinching game.
+                This is only used to break ties in the final overall playoff standings.
+            </p>
+
+            <div class="mt-4 max-w-xs">
+                <label for="tiebreakerPrediction" class="block text-sm font-semibold text-slate-900 mb-2">
+                    Tiebreaker Prediction
+                </label>
+                <input
+                        id="tiebreakerPrediction"
+                        type="number"
+                        min="50"
+                        max="400"
+                        step="1"
+                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                        placeholder="e.g. 212"
+                />
+            </div>
+
+            <div id="tiebreakerSubtext" class="mt-3 text-xs text-slate-500"></div>
+        </div>
+
+        <button
+                id="submitBtn"
+                type="button"
+                class="mt-6 inline-flex items-center justify-center rounded-xl bg-orange-500 px-5 py-2.5 text-white font-semibold shadow-lg transition hover:bg-orange-600"
+        >
+            Save Picks
+        </button>
+
+        <div id="message" class="message"></div>
+    </section>
+</main>
+
+<script>
+    // Optional styling helpers for mypicks.js-rendered content
+    window.NBA_PICKS_THEME = {
+      card: "bg-white border border-slate-200 rounded-2xl shadow-md p-5",
+      cardLocked: "bg-slate-50 border border-amber-300 rounded-2xl shadow-md p-5",
+      cardFinal: "bg-slate-100 border border-slate-300 rounded-2xl shadow-md p-5",
+      title: "text-2xl font-bold text-slate-900 tracking-tight",
+      metaWrap: "flex flex-wrap gap-2 mt-3 mb-4",
+      metaPill: "inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs sm:text-sm text-slate-700",
+      statusOpen: "inline-flex items-center rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-bold",
+      statusLocked: "inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-bold",
+      statusFinal: "inline-flex items-center rounded-full bg-slate-200 text-slate-700 px-3 py-1 text-xs font-bold",
+      subtext: "mt-2 mb-3 text-sm text-slate-600",
+      emptyState: "rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-slate-600",
+      pickButtons: "pick-buttons grid grid-cols-2 gap-3 mt-4",
+      teamBtn: "team-btn inline-flex items-center justify-center gap-3 min-h-[58px] rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 font-semibold transition hover:border-amber-400 hover:bg-amber-50",
+      teamBtnSelected: "selected border-2 border-slate-900 bg-amber-50 shadow-md -translate-y-[1px]",
+      teamBtnDisabled: "opacity-60 cursor-not-allowed bg-slate-100 hover:bg-slate-100 hover:border-slate-300",
+      formRow: "series-form-row grid grid-cols-2 gap-4 items-end mt-4 pt-4 border-t border-slate-200",
+      label: "block text-sm font-semibold text-slate-900 mb-2",
+      input: "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200",
+      bannerBase: "mt-4 rounded-xl px-4 py-3 font-semibold",
+      bannerOpen: "bg-green-100 text-green-800",
+      bannerLocked: "bg-amber-100 text-amber-800",
+      bannerFinal: "bg-slate-200 text-slate-700"
+    };
+</script>
+
+<script src="/js/nba-teams.js"></script>
+<script src="/js/mypicks.js"></script>
+<script src="/js/shared-header.js"></script>
+</body>
+</html>
