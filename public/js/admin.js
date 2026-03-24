@@ -1098,7 +1098,7 @@
           lastName: document.getElementById("newLastName").value.trim(),
           username: document.getElementById("newUsername").value.trim(),
           email: document.getElementById("newEmail").value.trim(),
-          password: document.getElementById("newPassword").value.trim(),
+          password: document.getElementById("createUserPassword").value.trim(),
           isAdmin: document.getElementById("newIsAdmin").checked
         };
 
