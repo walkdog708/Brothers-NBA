@@ -18,6 +18,41 @@ const openPickStatusTitle = document.getElementById("openPickStatusTitle");
 const openPickStatusBody = document.getElementById("openPickStatusBody");
 const openPickStatusMeta = document.getElementById("openPickStatusMeta");
 
+const payoutFirst = document.getElementById("payoutFirst");
+const payoutSecond = document.getElementById("payoutSecond");
+const payoutThird = document.getElementById("payoutThird");
+const payoutsNote = document.getElementById("payoutsNote");
+const wallOfFameGrid = document.getElementById("wallOfFameGrid");
+
+function formatCurrency(amount) {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return "$0";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0
+  }).format(n);
+}
+
+function resetPayouts() {
+  if (payoutFirst) payoutFirst.textContent = "$0";
+  if (payoutSecond) payoutSecond.textContent = "$0";
+  if (payoutThird) payoutThird.textContent = "$0";
+  if (payoutsNote) payoutsNote.textContent = "Payouts will be configured by the commissioner.";
+}
+
+function resetWallOfFame() {
+  if (!wallOfFameGrid) return;
+  wallOfFameGrid.innerHTML = `
+    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Season</p>
+      <p class="mt-2 text-2xl font-black text-brand-900">2026</p>
+      <p class="mt-3 text-sm font-semibold text-slate-700">Champion</p>
+      <p class="mt-1 text-lg font-bold text-brand-900">Coming Soon</p>
+    </div>
+  `;
+}
+
 function showLoggedOut() {
   loggedOutCard.classList.remove("hidden");
   loggedInCard.classList.add("hidden");
@@ -37,6 +72,84 @@ function showLoggedOut() {
   if (openPickStatusTitle) openPickStatusTitle.textContent = "";
   if (openPickStatusBody) openPickStatusBody.textContent = "";
   if (openPickStatusMeta) openPickStatusMeta.textContent = "";
+
+  resetPayouts();
+  resetWallOfFame();
+}
+
+async function loadPayouts() {
+  try {
+    const season = getCurrentSeason();
+    const res = await fetch(`/api/public/homepage-content?season=${encodeURIComponent(season)}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      resetPayouts();
+      return;
+    }
+
+    const payouts = data?.payouts || {};
+
+    if (payoutFirst) payoutFirst.textContent = formatCurrency(payouts.first || 0);
+    if (payoutSecond) payoutSecond.textContent = formatCurrency(payouts.second || 0);
+    if (payoutThird) payoutThird.textContent = formatCurrency(payouts.third || 0);
+
+    if (payoutsNote) {
+      payoutsNote.textContent =
+        String(payouts.note || "").trim() || "Payouts will be configured by the commissioner.";
+    }
+  } catch (err) {
+    console.error("loadPayouts error:", err);
+    resetPayouts();
+  }
+}
+
+async function loadWallOfFame() {
+  try {
+    const season = getCurrentSeason();
+    const res = await fetch(`/api/public/homepage-content?season=${encodeURIComponent(season)}`);
+    const data = await res.json();
+
+    if (!res.ok || !wallOfFameGrid) {
+      resetWallOfFame();
+      return;
+    }
+
+    const entries = Array.isArray(data.wallOfFame) ? data.wallOfFame.slice() : [];
+
+    if (!entries.length) {
+      resetWallOfFame();
+      return;
+    }
+
+    entries.sort((a, b) => Number(b.season || 0) - Number(a.season || 0));
+
+    wallOfFameGrid.innerHTML = entries
+      .map((entry, index) => {
+        const featured = index === 0;
+        return `
+          <div class="rounded-2xl border ${featured ? "border-yellow-200 bg-yellow-50" : "border-slate-200 bg-slate-50"} p-5">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Season</p>
+            <p class="mt-2 text-2xl font-black text-brand-900">${entry.season}</p>
+            <p class="mt-3 text-sm font-semibold text-slate-700">Champion</p>
+            <p class="mt-1 text-lg font-bold text-brand-900">${entry.championName}</p>
+            ${entry.notes ? `<p class="mt-2 text-sm text-slate-600">${entry.notes}</p>` : ""}
+          </div>
+        `;
+      })
+      .join("");
+  } catch (err) {
+    console.error("loadWallOfFame error:", err);
+    resetWallOfFame();
+  }
+}
+
+async function fetchHomepageContent() {
+  const season = getCurrentSeason();
+  const res = await fetch(`/api/public/homepage-content?season=${encodeURIComponent(season)}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error || "Failed to load homepage content");
+  return data;
 }
 
 function showLoggedIn(user) {
@@ -229,7 +342,9 @@ async function loadMe() {
       showLoggedIn(data.user);
       await Promise.all([
         loadPersonalSnapshot(data.user),
-        loadOpenPickStatus(data.user)
+        loadOpenPickStatus(data.user),
+        loadPayouts(),
+        loadWallOfFame()
       ]);
     } else {
       showLoggedOut();
@@ -280,7 +395,9 @@ if (loginForm) {
       showLoggedIn(data.user);
       await Promise.all([
         loadPersonalSnapshot(data.user),
-        loadOpenPickStatus(data.user)
+        loadOpenPickStatus(data.user),
+        loadPayouts(),
+        loadWallOfFame()
       ]);
     } catch (err) {
       console.error("login error:", err);

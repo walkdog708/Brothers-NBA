@@ -64,7 +64,7 @@
             </h1>
 
             <p class="mt-4 text-base sm:text-lg md:text-xl text-white/90 leading-relaxed">
-                Welcome to the NBA Playoff Confidence Pool. Pick each series winner, assign your confidence points, and predict how many games the series will last.
+                Welcome to the NBA Playoff Confidence Pool.
             </p>
         </div>
     </section>
@@ -102,37 +102,290 @@
             </a>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+        <div class="max-w-3xl">
             <div class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6">
-                <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Current Rank</p>
-                <p id="userRank" class="mt-3 text-4xl font-black text-brand-900">—</p>
-                <p id="userPointsText" class="mt-2 text-sm text-slate-500"></p>
-            </div>
+                <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Current Standing</p>
 
-            <div class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6">
-                <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Points Behind #1</p>
-                <p id="pointsBehindFirst" class="mt-3 text-4xl font-black text-brand-900">—</p>
-                <p id="leaderText" class="mt-2 text-sm text-slate-500"></p>
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Rank</p>
+                        <p id="userRank" class="mt-2 text-4xl font-black text-brand-900">—</p>
+                        <p id="userPointsText" class="mt-2 text-sm text-slate-500"></p>
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Points Behind #1</p>
+                        <p id="pointsBehindFirst" class="mt-2 text-4xl font-black text-brand-900">—</p>
+                        <p id="leaderText" class="mt-2 text-sm text-slate-500"></p>
+                    </div>
+                </div>
             </div>
         </div>
+    </section>
 
-        <div class="flex flex-wrap items-center gap-3">
-            <a
-                    href="mypicks.html"
-                    class="inline-flex items-center justify-center rounded-xl bg-accent-500 px-5 py-2.5 text-white font-semibold shadow-lg transition hover:bg-accent-600"
-            >
-                Go to My Picks
-            </a>
+    <!-- Rules / Scoring / FAQs -->
+    <section class="max-w-4xl">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Rules & Scoring</p>
+                    <h3 class="mt-1 text-2xl sm:text-3xl font-bold text-brand-900">
+                        Frequently Asked Questions
+                    </h3>
+                    <p class="mt-2 text-sm sm:text-base text-slate-600">
+                        Everything you need to know about making picks, confidence points, bonus scoring, and lock timing.
+                    </p>
+                </div>
+            </div>
 
-            <a
-                    href="leaderboards.html"
-                    class="inline-flex items-center justify-center rounded-xl bg-gold-500 px-5 py-2.5 text-brand-900 font-semibold shadow-lg transition hover:bg-gold-400"
-            >
-                View Leaderboards
-            </a>
+            <div class="mt-6 space-y-3">
+                <details class="group rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-brand-900">
+                        <span>How do I make my picks?</span>
+                        <span class="text-slate-400 transition group-open:rotate-45">+</span>
+                    </summary>
+                    <p class="mt-3 text-sm sm:text-base leading-relaxed text-slate-600">
+                        Go to <span class="font-semibold text-brand-900">My Picks</span>, choose the winner for each open series,
+                        assign one confidence value to each series, and predict how many games the series will last.
+                        Then submit your picks before the series locks.
+                    </p>
+                </details>
 
+                <details class="group rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-brand-900">
+                        <span>How do confidence points work?</span>
+                        <span class="text-slate-400 transition group-open:rotate-45">+</span>
+                    </summary>
+                    <div class="mt-3 text-sm sm:text-base leading-relaxed text-slate-600 space-y-3">
+                        <p>
+                            Each round has its own allowed confidence values. You can only use each value once per round.
+                            If your series winner is correct, you earn the confidence points assigned to that pick.
+                        </p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div class="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Round 1</p>
+                                <p class="mt-1 text-sm font-bold text-brand-900">1, 2, 3, 4, 5, 6, 7, 8</p>
+                            </div>
+                            <div class="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Round 2</p>
+                                <p class="mt-1 text-sm font-bold text-brand-900">3, 6, 9, 12</p>
+                            </div>
+                            <div class="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Round 3</p>
+                                <p class="mt-1 text-sm font-bold text-brand-900">10, 20</p>
+                            </div>
+                            <div class="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">NBA Finals</p>
+                                <p class="mt-1 text-sm font-bold text-brand-900">20</p>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="group rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-brand-900">
+                        <span>How does bonus scoring work?</span>
+                        <span class="text-slate-400 transition group-open:rotate-45">+</span>
+                    </summary>
+
+                    <div class="mt-3 text-sm sm:text-base leading-relaxed text-slate-600 space-y-4">
+                        <p>
+                        <p>
+                            Bonus points are awarded based on how close your predicted series length is to the actual number of games played. You only receive bonus points if you correctly pick the winner of the series.
+                        </p>
+                        </p>
+
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                            <p class="text-sm font-semibold text-brand-900">Round 1 Bonus</p>
+                            <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Exact</p>
+                                    <p class="mt-1 font-bold text-brand-900">+4</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 1</p>
+                                    <p class="mt-1 font-bold text-brand-900">+2</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 2</p>
+                                    <p class="mt-1 font-bold text-brand-900">+1</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 3+</p>
+                                    <p class="mt-1 font-bold text-brand-900">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                            <p class="text-sm font-semibold text-brand-900">Round 2 Bonus</p>
+                            <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Exact</p>
+                                    <p class="mt-1 font-bold text-brand-900">+8</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 1</p>
+                                    <p class="mt-1 font-bold text-brand-900">+4</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 2</p>
+                                    <p class="mt-1 font-bold text-brand-900">+2</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 3+</p>
+                                    <p class="mt-1 font-bold text-brand-900">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                            <p class="text-sm font-semibold text-brand-900">Round 3 Bonus</p>
+                            <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Exact</p>
+                                    <p class="mt-1 font-bold text-brand-900">+16</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 1</p>
+                                    <p class="mt-1 font-bold text-brand-900">+8</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 2</p>
+                                    <p class="mt-1 font-bold text-brand-900">+4</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 3+</p>
+                                    <p class="mt-1 font-bold text-brand-900">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                            <p class="text-sm font-semibold text-brand-900">NBA Finals Bonus</p>
+                            <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Exact</p>
+                                    <p class="mt-1 font-bold text-brand-900">+40</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 1</p>
+                                    <p class="mt-1 font-bold text-brand-900">+20</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 2</p>
+                                    <p class="mt-1 font-bold text-brand-900">+10</p>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">Off by 3+</p>
+                                    <p class="mt-1 font-bold text-brand-900">0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="text-sm text-slate-500">
+                            Bonus values increase each round, making later playoff rounds and the NBA Finals even more impactful.
+                        </p>
+                    </div>
+                </details>
+
+                <details class="group rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-brand-900">
+                        <span>When do picks lock?</span>
+                        <span class="text-slate-400 transition group-open:rotate-45">+</span>
+                    </summary>
+                    <p class="mt-3 text-sm sm:text-base leading-relaxed text-slate-600">
+                        Each series locks at its scheduled lock time. Once a series is locked, you can no longer change
+                        that pick, confidence value, or games prediction for that matchup.
+                    </p>
+                </details>
+
+                <details class="group rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-brand-900">
+                        <span>Can I edit my picks after submitting?</span>
+                        <span class="text-slate-400 transition group-open:rotate-45">+</span>
+                    </summary>
+                    <p class="mt-3 text-sm sm:text-base leading-relaxed text-slate-600">
+                        Yes. You can update picks for any series that is still open. Locked series can no longer be edited.
+                    </p>
+                </details>
+
+                <details class="group rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-brand-900">
+                        <span>When is the tiebreaker used?</span>
+                        <span class="text-slate-400 transition group-open:rotate-45">+</span>
+                    </summary>
+                    <p class="mt-3 text-sm sm:text-base leading-relaxed text-slate-600">
+                        The tiebreaker is only used to break the final ties. Enter your tiebreaker prediction when submitting your first-round picks. It will be
+                        used against the final Final's game.
+                    </p>
+                </details>
+            </div>
         </div>
+    </section>
 
+    <!-- Winnings / Payouts -->
+    <section class="max-w-4xl">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Prize Pool</p>
+                <h3 class="mt-1 text-2xl sm:text-3xl font-bold text-brand-900">
+                    What You’re Playing For
+                </h3>
+                <p class="mt-2 text-sm sm:text-base text-slate-600">
+                    Final payouts for the top finishers in this year’s contest.
+                </p>
+            </div>
+
+            <div id="payoutsGrid" class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="rounded-2xl border border-yellow-200 bg-yellow-50 p-5 text-center">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">1st Place</p>
+                    <p id="payoutFirst" class="mt-3 text-3xl font-black text-brand-900">$0</p>
+                    <p class="mt-2 text-sm text-slate-600">Champion payout</p>
+                </div>
+
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">2nd Place</p>
+                    <p id="payoutSecond" class="mt-3 text-3xl font-black text-brand-900">$0</p>
+                    <p class="mt-2 text-sm text-slate-600">Runner-up payout</p>
+                </div>
+
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-center">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">3rd Place</p>
+                    <p id="payoutThird" class="mt-3 text-3xl font-black text-brand-900">$0</p>
+                    <p class="mt-2 text-sm text-slate-600">Third-place payout</p>
+                </div>
+            </div>
+
+            <p id="payoutsNote" class="mt-4 text-sm text-slate-500">
+                Payouts will be configured by the commissioner.
+            </p>
+        </div>
+    </section>
+
+    <!-- Wall of Fame -->
+    <section class="max-w-5xl">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">History</p>
+                <h3 class="mt-1 text-2xl sm:text-3xl font-bold text-brand-900">
+                    Wall of Fame
+                </h3>
+                <p class="mt-2 text-sm sm:text-base text-slate-600">
+                    Past Brothers NBA champions by season.
+                </p>
+            </div>
+
+            <div id="wallOfFameGrid" class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Season</p>
+                    <p class="mt-2 text-2xl font-black text-brand-900">2026</p>
+                    <p class="mt-3 text-sm font-semibold text-slate-700">Champion</p>
+                    <p class="mt-1 text-lg font-bold text-brand-900">Coming Soon</p>
+                </div>
+            </div>
+        </div>
     </section>
 </main>
 

@@ -48,6 +48,172 @@
   const saveTiebreakerBtn = document.getElementById("saveTiebreakerBtn");
   const tiebreakerMessage = document.getElementById("tiebreakerMessage");
 
+  const homepageContentMessage = document.getElementById("homepageContentMessage");
+  const homepageFirstPayout = document.getElementById("homepageFirstPayout");
+  const homepageSecondPayout = document.getElementById("homepageSecondPayout");
+  const homepageThirdPayout = document.getElementById("homepageThirdPayout");
+  const homepagePayoutNote = document.getElementById("homepagePayoutNote");
+  const wallOfFameAdminRows = document.getElementById("wallOfFameAdminRows");
+  const addWallOfFameRowBtn = document.getElementById("addWallOfFameRowBtn");
+  const loadHomepageContentBtn = document.getElementById("loadHomepageContentBtn");
+  const saveHomepageContentBtn = document.getElementById("saveHomepageContentBtn");
+
+ function showHomepageContentMessage(text, type = "success") {
+   if (!homepageContentMessage) return;
+
+   homepageContentMessage.textContent = text;
+   homepageContentMessage.className =
+     type === "success"
+       ? "rounded-xl px-4 py-3 text-sm bg-green-50 border border-green-200 text-green-700"
+       : "rounded-xl px-4 py-3 text-sm bg-red-50 border border-red-200 text-red-700";
+
+   homepageContentMessage.classList.remove("hidden");
+ }
+
+ addWallOfFameRowBtn?.addEventListener("click", () => {
+   wallOfFameAdminRows?.appendChild(createWallOfFameAdminRow());
+ });
+
+ loadHomepageContentBtn?.addEventListener("click", loadHomepageContent);
+ saveHomepageContentBtn?.addEventListener("click", saveHomepageContent);
+
+ function createWallOfFameAdminRow(entry = {}) {
+   const row = document.createElement("div");
+   row.className = "grid grid-cols-1 md:grid-cols-[140px_1fr_1fr_auto] gap-3 items-end";
+   row.innerHTML = `
+     <div>
+       <label class="block text-sm font-medium text-brand-900">Season</label>
+       <input type="number" min="2000" class="w-full mt-1 rounded-xl border border-slate-300 px-3 py-2.5 wall-season" value="${entry.season || ""}">
+     </div>
+     <div>
+       <label class="block text-sm font-medium text-brand-900">Champion</label>
+       <input type="text" class="w-full mt-1 rounded-xl border border-slate-300 px-3 py-2.5 wall-champion" value="${entry.championName || ""}">
+     </div>
+     <div>
+       <label class="block text-sm font-medium text-brand-900">Notes</label>
+       <input type="text" class="w-full mt-1 rounded-xl border border-slate-300 px-3 py-2.5 wall-notes" value="${entry.notes || ""}">
+     </div>
+     <div>
+       <button type="button" class="inline-flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100 remove-wall-row">
+         Remove
+       </button>
+     </div>
+   `;
+
+   row.querySelector(".remove-wall-row")?.addEventListener("click", () => {
+     row.remove();
+   });
+
+   return row;
+ }
+
+ function getHomepageContentSeason() {
+   const value = Number(seedSeasonEl?.value || 2026);
+   return Number.isFinite(value) ? value : 2026;
+ }
+
+ async function loadHomepageContent() {
+   try {
+     const season = getHomepageContentSeason();
+     const res = await fetch(`/api/admin/homepage-content?season=${encodeURIComponent(season)}`);
+     const data = await res.json();
+
+     if (!res.ok || !data?.content) {
+       showHomepageContentMessage(data?.error || "Failed to load homepage content", "error");
+       return;
+     }
+
+     const content = data.content;
+     const payouts = content.payouts || {};
+
+     if (homepageFirstPayout) homepageFirstPayout.value = payouts.first || 0;
+     if (homepageSecondPayout) homepageSecondPayout.value = payouts.second || 0;
+     if (homepageThirdPayout) homepageThirdPayout.value = payouts.third || 0;
+     if (homepagePayoutNote) homepagePayoutNote.value = payouts.note || "";
+
+     if (wallOfFameAdminRows) {
+       wallOfFameAdminRows.innerHTML = "";
+       const rows = Array.isArray(content.wallOfFame) ? content.wallOfFame : [];
+       if (rows.length) {
+         rows
+           .sort((a, b) => Number(b.season || 0) - Number(a.season || 0))
+           .forEach((entry) => wallOfFameAdminRows.appendChild(createWallOfFameAdminRow(entry)));
+       } else {
+         wallOfFameAdminRows.appendChild(createWallOfFameAdminRow());
+       }
+     }
+
+     showHomepageContentMessage("Homepage content loaded.");
+   } catch (err) {
+     console.error("loadHomepageContent error:", err);
+     showHomepageContentMessage("Failed to load homepage content", "error");
+   }
+ }
+
+ async function saveHomepageContent() {
+   try {
+     const season = getHomepageContentSeason();
+
+     const wallOfFame = Array.from(wallOfFameAdminRows?.children || []).map((row) => ({
+       season: Number(row.querySelector(".wall-season")?.value || 0),
+       championName: row.querySelector(".wall-champion")?.value?.trim() || "",
+       notes: row.querySelector(".wall-notes")?.value?.trim() || ""
+     }));
+
+     const payload = {
+       season,
+       payouts: {
+         first: Number(homepageFirstPayout?.value || 0),
+         second: Number(homepageSecondPayout?.value || 0),
+         third: Number(homepageThirdPayout?.value || 0),
+         note: homepagePayoutNote?.value?.trim() || ""
+       },
+       wallOfFame
+     };
+
+     const res = await fetch("/api/admin/homepage-content", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify(payload)
+     });
+
+     const data = await res.json();
+
+     if (!res.ok) {
+       showHomepageContentMessage(data?.error || "Failed to save homepage content", "error");
+       return;
+     }
+
+     showHomepageContentMessage("Homepage content saved.");
+   } catch (err) {
+     console.error("saveHomepageContent error:", err);
+     showHomepageContentMessage("Failed to save homepage content", "error");
+   }
+ }
+
+ function initAdminTabs() {
+   tabButtons.forEach((btn) => {
+     btn.addEventListener("click", () => {
+       const tabId = btn.dataset.tab;
+
+       tabPanels.forEach((panel) => {
+         panel.classList.toggle("hidden", panel.id !== tabId);
+       });
+
+       tabButtons.forEach((b) => b.classList.remove("active"));
+       btn.classList.add("active");
+
+       if (tabId === "homepageTab") {
+         loadHomepageContent();
+       }
+
+       if (tabId === "usersTab") {
+         loadUsers();
+       }
+     });
+   });
+ }
+
   function cx(...parts) {
     return parts.filter(Boolean).join(" ");
   }
@@ -1200,5 +1366,4 @@
 
   updateMatchupLabel();
   await loadSeries();
-  await loadUsers();
 })();

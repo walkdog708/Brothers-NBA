@@ -117,6 +117,14 @@
             <button
                     type="button"
                     class="admin-tab-btn inline-flex items-center justify-center rounded-xl bg-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
+                    data-tab="homepageTab"
+            >
+                Homepage Content
+            </button>
+
+            <button
+                    type="button"
+                    class="admin-tab-btn inline-flex items-center justify-center rounded-xl bg-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
                     data-tab="usersTab"
             >
                 User Management
@@ -421,6 +429,74 @@
                     </tr>
                     </tbody>
                 </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- HOMEPAGE TAB -->
+    <div id="homepageTab" class="admin-tab-panel hidden space-y-6">
+        <section class="bg-white border border-slate-200 rounded-2xl shadow-xl p-6 space-y-6">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Homepage Content</p>
+                <h2 class="mt-1 text-2xl font-bold text-brand-900">Payouts & Wall of Fame</h2>
+                <p class="mt-2 text-sm text-slate-600">
+                    Update the homepage winnings and past champions.
+                </p>
+            </div>
+
+            <div id="homepageContentMessage" class="hidden rounded-xl px-4 py-3 text-sm"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-brand-900">1st Place</label>
+                    <input id="homepageFirstPayout" type="number" min="0" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-brand-900">2nd Place</label>
+                    <input id="homepageSecondPayout" type="number" min="0" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-brand-900">3rd Place</label>
+                    <input id="homepageThirdPayout" type="number" min="0" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5" />
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-brand-900">Payout Note</label>
+                <input id="homepagePayoutNote" type="text" class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5" />
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between gap-4">
+                    <h3 class="text-lg font-bold text-brand-900">Wall of Fame</h3>
+                    <button
+                            id="addWallOfFameRowBtn"
+                            type="button"
+                            class="inline-flex items-center rounded-xl bg-accent-500 px-4 py-2 text-sm font-semibold text-white hover:bg-accent-600"
+                    >
+                        Add Champion
+                    </button>
+                </div>
+
+                <div id="wallOfFameAdminRows" class="mt-4 space-y-3"></div>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+                <button
+                        id="loadHomepageContentBtn"
+                        type="button"
+                        class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand-900 hover:bg-slate-50"
+                >
+                    Load Homepage Content
+                </button>
+
+                <button
+                        id="saveHomepageContentBtn"
+                        type="button"
+                        class="inline-flex items-center rounded-xl bg-brand-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+                >
+                    Save Homepage Content
+                </button>
             </div>
         </section>
     </div>

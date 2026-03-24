@@ -10,6 +10,7 @@ const cors = require("cors");
 require("./models/User");
 require("./models/PlayoffSeries");
 require("./models/RoundPicks");
+require("./models/HomepageContent");
 
 const authRoutes = require("./routes/auth");
 const protectedRoutes = require("./routes/protected");
@@ -55,6 +56,7 @@ app.use("/api/admin", playoffAdminRoutes);
 app.use("/api/playoff", playoffUserRoutes);
 app.use("/api/public", playoffPublicRoutes);
 app.use("/api/admin", adminUsersRoutes);
+app.use("/api", require("./routes/homepage"));
 
 // Page guards
 function requireLoginPage(req, res, next) {
