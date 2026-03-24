@@ -159,7 +159,7 @@ router.get("/leaderboard/season", requireAuth, requirePasswordChangeCleared, asy
       existing.totalPoints += Number(doc.totalPoints || 0);
       existing.roundsPlayed += 1;
 
-      if (Number(doc.round) === 1) {
+      if (Number(doc.round) === 4) {
         if (Number.isFinite(Number(doc.tiebreakerPrediction))) {
           existing.tiebreakerPrediction = Number(doc.tiebreakerPrediction);
         }

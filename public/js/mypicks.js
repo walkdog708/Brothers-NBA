@@ -377,11 +377,11 @@
 
   function renderTiebreaker(existingPicksDoc, roundLocked) {
     const currentRound = Number(roundSelect.value);
-    const isRoundOne = currentRound === 1;
+    const isFinalRound = currentRound === 4;
 
     if (!tiebreakerSection) return;
 
-    if (!isRoundOne) {
+    if (!isFinalRound) {
       tiebreakerSection.classList.add("hidden");
       if (tiebreakerPredictionInput) tiebreakerPredictionInput.value = "";
       if (tiebreakerSubtext) tiebreakerSubtext.textContent = "";
@@ -411,10 +411,10 @@
           `Saved tiebreaker submitted on ${new Date(submittedAt).toLocaleString()}.`;
       } else if (roundLocked) {
         tiebreakerSubtext.textContent =
-          "Round 1 is locked, so the tiebreaker can no longer be edited.";
+          "The NBA Finals round is locked, so the tiebreaker can no longer be edited.";
       } else {
         tiebreakerSubtext.textContent =
-          "Enter this once with your Round 1 picks.";
+          "Enter this with your NBA Finals pick.";
       }
     }
   }
@@ -636,14 +636,14 @@
   function collectTiebreakerPrediction() {
     const currentRound = Number(roundSelect.value);
 
-    if (currentRound !== 1) {
+    if (currentRound !== 4) {
       return null;
     }
 
     const value = Number(tiebreakerPredictionInput?.value);
 
     if (!Number.isFinite(value)) {
-      throw new Error("Please enter your tiebreaker prediction for Round 1.");
+      throw new Error("Please enter your tiebreaker prediction for the NBA Finals.");
     }
 
     if (value < 50 || value > 400) {

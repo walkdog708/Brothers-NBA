@@ -91,7 +91,7 @@ router.get("/series/open", requireAuth, requirePasswordChangeCleared, async (req
   }
 });
 
-// GET /api/playoff/mypicks?season=2026&round=1
+// GET /api/playoff/mypicks?season=2026&round=4
 router.get("/mypicks", requireAuth, requirePasswordChangeCleared, async (req, res) => {
   try {
     const season = Number(req.query.season);
@@ -261,10 +261,10 @@ router.post("/mypicks", requireAuth, requirePasswordChangeCleared, async (req, r
       return res.status(400).json({ error: "Round must be 1, 2, 3, or 4" });
     }
 
-    if (round === 1) {
+    if (round === 4) {
       if (!Number.isFinite(tiebreakerPrediction)) {
         return res.status(400).json({
-          error: "Tiebreaker prediction is required for Round 1"
+          error: "Tiebreaker prediction is required for the NBA Finals"
         });
       }
 
@@ -437,7 +437,7 @@ router.post("/mypicks", requireAuth, requirePasswordChangeCleared, async (req, r
       totalPoints: 0
     };
 
-    if (round === 1) {
+    if (round === 4) {
       updatePayload.tiebreakerPrediction = tiebreakerPrediction;
       updatePayload.tiebreakerSubmittedAt =
         existingDoc?.tiebreakerSubmittedAt || new Date();
