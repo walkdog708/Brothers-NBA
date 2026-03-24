@@ -24,6 +24,10 @@ const payoutThird = document.getElementById("payoutThird");
 const payoutsNote = document.getElementById("payoutsNote");
 const wallOfFameGrid = document.getElementById("wallOfFameGrid");
 
+const openPickStatusLink = document.getElementById("openPickStatusLink");
+const openResultsLink = document.getElementById("openResultsLink");
+const openLeaderboardLink = document.getElementById("openLeaderboardLink");
+
 function formatCurrency(amount) {
   const n = Number(amount);
   if (!Number.isFinite(n)) return "$0";
@@ -313,6 +317,21 @@ async function loadOpenPickStatus(user) {
       } else {
         openPickStatusMeta.textContent = "";
       }
+
+      if (openPickStatusLink) {
+        openPickStatusLink.className =
+          "inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600";
+      }
+
+      if (openResultsLink) {
+        openResultsLink.className =
+          "inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100";
+      }
+
+      if (openLeaderboardLink) {
+        openLeaderboardLink.className =
+          "inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100";
+      }
     } else {
       openPickStatusCard.className =
         "mt-4 rounded-2xl border border-green-200 bg-green-50 p-4";
@@ -321,6 +340,21 @@ async function loadOpenPickStatus(user) {
       openPickStatusBody.textContent =
         rounds.length ? `Open rounds: ${rounds.map((r) => r.round).join(", ")}` : "";
       openPickStatusMeta.textContent = "";
+
+      if (openPickStatusLink) {
+        openPickStatusLink.className =
+          "inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100";
+      }
+
+      if (openResultsLink) {
+        openResultsLink.className =
+          "inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600";
+      }
+
+      if (openLeaderboardLink) {
+        openLeaderboardLink.className =
+          "inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100";
+      }
     }
   } catch (err) {
     console.error("loadOpenPickStatus error:", err);
