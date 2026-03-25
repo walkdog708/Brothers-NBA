@@ -28,6 +28,15 @@ const openPickStatusLink = document.getElementById("openPickStatusLink");
 const openResultsLink = document.getElementById("openResultsLink");
 const openLeaderboardLink = document.getElementById("openLeaderboardLink");
 
+const faqSection = document.getElementById("faqSection");
+const prizePoolSection = document.getElementById("prizePoolSection");
+const historySection = document.getElementById("historySection");
+
+const heroWelcomeText = document.getElementById("heroWelcomeText");
+const heroUsernameWrap = document.getElementById("heroUsernameWrap");
+const heroSubtitle = document.getElementById("heroSubtitle");
+
+
 function formatCurrency(amount) {
   const n = Number(amount);
   if (!Number.isFinite(n)) return "$0";
@@ -61,25 +70,28 @@ function showLoggedOut() {
   loggedOutCard.classList.remove("hidden");
   loggedInCard.classList.add("hidden");
 
-  if (loginError) {
-    loginError.classList.add("hidden");
-    loginError.textContent = "";
-  }
+  if (heroWelcomeText) heroWelcomeText.classList.remove("hidden");
+  if (heroUsernameWrap) heroUsernameWrap.classList.add("hidden");
+  if (heroSubtitle) heroSubtitle.textContent = "Welcome to the NBA Playoff Confidence Pool.";
 
 
   if (welcomeUsername) welcomeUsername.textContent = "";
-  if (userRank) userRank.textContent = "—";
-  if (userPointsText) userPointsText.textContent = "";
-  if (pointsBehindFirst) pointsBehindFirst.textContent = "—";
-  if (leaderText) leaderText.textContent = "";
-  if (openPickStatusCard) openPickStatusCard.classList.add("hidden");
-  if (openPickStatusTitle) openPickStatusTitle.textContent = "";
-  if (openPickStatusBody) openPickStatusBody.textContent = "";
-  if (openPickStatusMeta) openPickStatusMeta.textContent = "";
+   if (userRank) userRank.textContent = "—";
+   if (userPointsText) userPointsText.textContent = "";
+   if (pointsBehindFirst) pointsBehindFirst.textContent = "—";
+   if (leaderText) leaderText.textContent = "";
+   if (openPickStatusCard) openPickStatusCard.classList.add("hidden");
+   if (openPickStatusTitle) openPickStatusTitle.textContent = "";
+   if (openPickStatusBody) openPickStatusBody.textContent = "";
+   if (openPickStatusMeta) openPickStatusMeta.textContent = "";
 
-  resetPayouts();
-  resetWallOfFame();
-}
+   if (faqSection) faqSection.classList.add("hidden");
+   if (prizePoolSection) prizePoolSection.classList.add("hidden");
+   if (historySection) historySection.classList.add("hidden");
+
+   resetPayouts();
+   resetWallOfFame();
+ }
 
 async function loadPayouts() {
   try {
@@ -161,8 +173,16 @@ function showLoggedIn(user) {
   loggedInCard.classList.remove("hidden");
 
   if (welcomeUsername) {
-    welcomeUsername.textContent = user.firstName || user.username || "User";
+    welcomeUsername.textContent = user.firstName || user.username || "";
   }
+
+  if (heroWelcomeText) heroWelcomeText.classList.add("hidden");
+  if (heroUsernameWrap) heroUsernameWrap.classList.remove("hidden");
+  if (heroSubtitle) heroSubtitle.textContent = "";
+
+  if (faqSection) faqSection.classList.remove("hidden");
+  if (prizePoolSection) prizePoolSection.classList.remove("hidden");
+  if (historySection) historySection.classList.remove("hidden");
 }
 
 function openSignInModal() {
