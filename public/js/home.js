@@ -72,7 +72,7 @@ function showLoggedOut() {
 
   if (heroWelcomeText) heroWelcomeText.classList.remove("hidden");
   if (heroUsernameWrap) heroUsernameWrap.classList.add("hidden");
-  if (heroSubtitle) heroSubtitle.textContent = "Welcome to the NBA Playoff Confidence Pool.";
+  if (heroSubtitle) heroSubtitle.textContent = "Welcome to the League.";
 
 
   if (welcomeUsername) welcomeUsername.textContent = "";
@@ -112,7 +112,7 @@ async function loadPayouts() {
 
     if (payoutsNote) {
       payoutsNote.textContent =
-        String(payouts.note || "").trim() || "Payouts will be configured by the commissioner.";
+        String(payouts.note || "").trim() || "Payouts will be sent out at the end of the Finals.";
     }
   } catch (err) {
     console.error("loadPayouts error:", err);

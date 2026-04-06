@@ -71,7 +71,7 @@ function requireAdminPage(req, res, next) {
 
 // Health check
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, message: "Brothers NBA server is running" });
+  res.json({ ok: true, message: "Brosero NBA server is running" });
 });
 
 // Page routes

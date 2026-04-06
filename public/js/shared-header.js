@@ -241,7 +241,7 @@
           <div class="h-14 flex items-center justify-between gap-3">
             <a href="home.html" class="flex items-center shrink-0 min-w-0">
               <span class="text-lg md:text-xl font-bold tracking-tight truncate">
-                Brothers <span class="text-amber-300">NBA</span>
+                Brosero <span class="text-amber-300">Hoops</span>
               </span>
             </a>
 
