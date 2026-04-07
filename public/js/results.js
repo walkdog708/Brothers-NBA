@@ -29,6 +29,7 @@
   const myResultsView = document.getElementById("myResultsView");
   const allResultsView = document.getElementById("allResultsView");
   const allResultsContainer = document.getElementById("allResultsContainer");
+  const tiebreakerSummaryContainer = document.getElementById("tiebreakerSummaryContainer");
 
   let currentView = "my";
   let currentRoundLocked = false;
@@ -49,6 +50,126 @@
         : "";
 
     summary.className = text ? `${base} ${tone}` : "message mt-5";
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function clearTiebreakerSummary() {
+    if (!tiebreakerSummaryContainer) return;
+    tiebreakerSummaryContainer.classList.add("hidden");
+    tiebreakerSummaryContainer.innerHTML = "";
+  }
+
+  function renderTiebreakerSummary(tiebreakerSummary, round, roundLocked) {
+    if (!tiebreakerSummaryContainer) return;
+
+    const isFinalRound = Number(round) === 4;
+
+    if (!isFinalRound || !roundLocked || !tiebreakerSummary) {
+      clearTiebreakerSummary();
+      return;
+    }
+
+    const actual = Number.isFinite(Number(tiebreakerSummary.actualTiebreakerPoints))
+      ? Number(tiebreakerSummary.actualTiebreakerPoints)
+      : null;
+
+    const predictions = Array.isArray(tiebreakerSummary.predictions)
+      ? tiebreakerSummary.predictions
+      : [];
+
+    tiebreakerSummaryContainer.classList.remove("hidden");
+    tiebreakerSummaryContainer.innerHTML = `
+      <section class="rounded-2xl border border-amber-200 bg-white shadow-sm overflow-hidden">
+        <div class="px-4 sm:px-6 py-4 bg-gradient-to-r from-slate-900 to-amber-500 text-white">
+          <h3 class="text-xl sm:text-2xl font-bold">NBA Finals Tiebreaker</h3>
+          <p class="mt-1 text-sm text-white/90">
+            These predictions are used to break ties in the final overall standings.
+          </p>
+        </div>
+
+        <div class="p-4 sm:p-6">
+          <div class="mb-5 inline-flex items-center rounded-full bg-amber-100 text-amber-900 px-4 py-2 text-sm font-semibold">
+            Actual clinching game total points:
+            <span class="ml-2 text-base font-extrabold">${actual ?? "Not set yet"}</span>
+          </div>
+
+          ${
+            predictions.length
+              ? `
+                <div class="overflow-x-auto hidden md:block">
+                  <table class="min-w-full text-sm">
+                    <thead class="bg-slate-100 text-slate-700">
+                      <tr>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">User</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Prediction</th>
+                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Off By</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 bg-white">
+                      ${predictions.map((item) => `
+                        <tr class="hover:bg-amber-50/40 transition">
+                          <td class="px-4 py-3 font-semibold text-slate-900">${escapeHtml(item.username || "-")}</td>
+                          <td class="px-4 py-3 text-slate-700">
+                            ${Number.isFinite(Number(item.prediction)) ? Number(item.prediction) : "-"}
+                          </td>
+                          <td class="px-4 py-3 text-slate-700">
+                            ${
+                              Number.isFinite(Number(item.diff))
+                                ? `<span class="font-semibold text-amber-700">${Number(item.diff)}</span>`
+                                : "-"
+                            }
+                          </td>
+                        </tr>
+                      `).join("")}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="space-y-3 md:hidden">
+                  ${predictions.map((item) => `
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div class="flex items-center justify-between gap-3">
+                        <div class="font-bold text-slate-900">${escapeHtml(item.username || "-")}</div>
+                        <div class="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-sm font-bold text-white">
+                          ${
+                            Number.isFinite(Number(item.prediction))
+                              ? Number(item.prediction)
+                              : "-"
+                          }
+                        </div>
+                      </div>
+
+                      <div class="mt-3 text-sm text-slate-600">
+                        Off By:
+                        <span class="font-bold text-amber-700">
+                          ${
+                            Number.isFinite(Number(item.diff))
+                              ? Number(item.diff)
+                              : "-"
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  `).join("")}
+                </div>
+              `
+              : `
+                <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-slate-600">
+                  No tiebreaker predictions found.
+                </div>
+              `
+          }
+        </div>
+      </section>
+    `;
   }
 
   function renderEmptyState(text) {
@@ -430,6 +551,7 @@
     const round = roundSelect.value;
 
     renderAllResultsPlaceholder("Loading all results...");
+    clearTiebreakerSummary();
 
     try {
       const res = await fetch(
@@ -439,10 +561,14 @@
 
       if (!res.ok) {
         renderAllResultsPlaceholder(data.error || "Unable to load all results.");
+        clearTiebreakerSummary();
         return;
       }
 
       currentAllResultsData = data;
+
+      renderTiebreakerSummary(data.tiebreakerSummary, round, data.roundLocked);
+
       renderAllResults(
         Array.isArray(data.entries) ? data.entries : [],
         Array.isArray(data.series) ? data.series : []
@@ -450,12 +576,14 @@
     } catch (err) {
       console.error("loadAllResults error:", err);
       renderAllResultsPlaceholder("Server error loading all results.");
+      clearTiebreakerSummary();
     }
   }
 
   async function loadResults() {
     setSummary("");
     currentAllResultsData = null;
+    clearTiebreakerSummary();
 
     const season = seasonSelect.value;
     const round = roundSelect.value;
@@ -474,6 +602,7 @@
         renderEmptyState("Unable to load results.");
         setAllResultsAvailability(false);
         setActiveTab("my");
+        clearTiebreakerSummary();
         return;
       }
 
@@ -489,6 +618,7 @@
         renderEmptyState("No series found for this round.");
         setSummary("", "");
         setActiveTab("my");
+        clearTiebreakerSummary();
         return;
       }
 
@@ -505,6 +635,7 @@
         setActiveTab("all");
       } else {
         setActiveTab("my");
+        clearTiebreakerSummary();
       }
     } catch (err) {
       console.error("loadResults error:", err);
@@ -512,6 +643,7 @@
       renderEmptyState("Server error loading results.");
       setAllResultsAvailability(false);
       setActiveTab("my");
+      clearTiebreakerSummary();
     }
   }
 

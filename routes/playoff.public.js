@@ -106,14 +106,72 @@ router.get("/all-results", requireAuth, requirePasswordChangeCleared, async (req
     const entries = docs.map((doc) => ({
       username: doc.username,
       totalPoints: Number(doc.totalPoints || 0),
-      picks: Array.isArray(doc.picks) ? doc.picks : []
+      picks: Array.isArray(doc.picks) ? doc.picks : [],
+      tiebreakerPrediction: Number.isFinite(Number(doc.tiebreakerPrediction))
+        ? Number(doc.tiebreakerPrediction)
+        : null,
+      tiebreakerSubmittedAt: doc.tiebreakerSubmittedAt || null
     }));
+
+    let tiebreakerSummary = null;
+
+    if (round === 4) {
+      const seasonSettings = await PlayoffSeasonSettings.findOne({ season }).lean();
+
+      const actualTiebreakerPoints = Number.isFinite(Number(seasonSettings?.actualTiebreakerPoints))
+        ? Number(seasonSettings.actualTiebreakerPoints)
+        : null;
+
+      const predictions = entries
+        .map((entry) => {
+          const prediction = Number.isFinite(Number(entry.tiebreakerPrediction))
+            ? Number(entry.tiebreakerPrediction)
+            : null;
+
+          const diff =
+            Number.isFinite(actualTiebreakerPoints) && Number.isFinite(prediction)
+              ? Math.abs(prediction - actualTiebreakerPoints)
+              : null;
+
+          return {
+            username: entry.username,
+            prediction,
+            diff,
+            submittedAt: entry.tiebreakerSubmittedAt || null
+          };
+        })
+        .sort((a, b) => {
+          const aHasPrediction = Number.isFinite(a.prediction);
+          const bHasPrediction = Number.isFinite(b.prediction);
+
+          if (aHasPrediction && !bHasPrediction) return -1;
+          if (!aHasPrediction && bHasPrediction) return 1;
+
+          const diffA = Number.isFinite(a.diff) ? a.diff : Number.POSITIVE_INFINITY;
+          const diffB = Number.isFinite(b.diff) ? b.diff : Number.POSITIVE_INFINITY;
+
+          if (diffA !== diffB) return diffA - diffB;
+
+          const timeA = a.submittedAt ? new Date(a.submittedAt).getTime() : Number.POSITIVE_INFINITY;
+          const timeB = b.submittedAt ? new Date(b.submittedAt).getTime() : Number.POSITIVE_INFINITY;
+
+          if (timeA !== timeB) return timeA - timeB;
+
+          return String(a.username || "").localeCompare(String(b.username || ""));
+        });
+
+      tiebreakerSummary = {
+        actualTiebreakerPoints,
+        predictions
+      };
+    }
 
     return res.json({
       ok: true,
       roundLocked: true,
       series: seriesList,
-      entries
+      entries,
+      tiebreakerSummary
     });
   } catch (err) {
     console.error("GET /api/public/all-results error:", err);

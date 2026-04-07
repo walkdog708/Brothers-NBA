@@ -9,10 +9,9 @@
     }
 
     if (meData.user?.mustChangePassword) {
-          window.location.href = "/change-password.html";
-          return;
-        }
-
+      window.location.href = "/change-password.html";
+      return;
+    }
   } catch (err) {
     console.error("leaderboards auth check error:", err);
     window.location.href = "/home.html";
@@ -89,76 +88,15 @@
     return `<span class="text-slate-700">${num}</span>`;
   }
 
-  function normalizeNumber(value) {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : 0;
-  }
-
-  function buildSeasonLeaderboard(roundLeaderboards) {
-    const totals = new Map();
-
-    for (const roundRows of roundLeaderboards) {
-      for (const row of roundRows) {
-        const username = String(row.username || "").trim();
-        if (!username) continue;
-
-        if (!totals.has(username)) {
-          totals.set(username, {
-            username,
-            totalPoints: 0,
-            correctWinners: 0,
-            bonusPoints: 0
-          });
-        }
-
-        const entry = totals.get(username);
-
-        entry.totalPoints += normalizeNumber(row.totalPoints);
-        entry.correctWinners += normalizeNumber(row.correctWinners);
-        entry.bonusPoints += normalizeNumber(row.bonusPoints);
-      }
-    }
-
-    const sorted = Array.from(totals.values()).sort((a, b) => {
-      return (
-        b.totalPoints - a.totalPoints ||
-        b.correctWinners - a.correctWinners ||
-        b.bonusPoints - a.bonusPoints ||
-        a.username.localeCompare(b.username)
-      );
-    });
-
-    let previousScoreKey = null;
-    let previousRank = 0;
-
-    return sorted.map((row, index) => {
-      const scoreKey = [
-        row.totalPoints,
-        row.correctWinners,
-        row.bonusPoints
-      ].join("|");
-
-      const rank = scoreKey === previousScoreKey ? previousRank : index + 1;
-
-      previousScoreKey = scoreKey;
-      previousRank = rank;
-
-      return {
-        ...row,
-        rank
-      };
-    });
-  }
-
-  async function fetchRoundLeaderboard(season, round) {
+  async function fetchSeasonLeaderboard(season) {
     const res = await fetch(
-      `/api/public/leaderboard?season=${encodeURIComponent(season)}&round=${encodeURIComponent(round)}`
+      `/api/public/leaderboard/season?season=${encodeURIComponent(season)}`
     );
 
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.error || `Failed to load leaderboard for round ${round}`);
+      throw new Error(data.error || "Failed to load season leaderboard");
     }
 
     return Array.isArray(data.leaderboard) ? data.leaderboard : [];
@@ -178,14 +116,7 @@
     renderEmptyRow("Loading leaderboard...");
 
     try {
-      const roundLeaderboards = await Promise.all([
-        fetchRoundLeaderboard(season, 1),
-        fetchRoundLeaderboard(season, 2),
-        fetchRoundLeaderboard(season, 3),
-        fetchRoundLeaderboard(season, 4)
-      ]);
-
-      const rows = buildSeasonLeaderboard(roundLeaderboards);
+      const rows = await fetchSeasonLeaderboard(season);
 
       if (!rows.length) {
         renderEmptyRow("No leaderboard entries found.");
@@ -198,7 +129,7 @@
           <td class="px-4 py-3">${rankBadge(row.rank)}</td>
           <td class="px-4 py-3 font-semibold text-slate-900">${row.username || "-"}</td>
           <td class="px-4 py-3">${formatPoints(row.totalPoints)}</td>
-          <td class="px-4 py-3 text-slate-700">${row.correctWinners ?? "-"}</td>
+          <td class="px-4 py-3 text-slate-700">${row.roundsPlayed ?? "-"}</td>
           <td class="px-4 py-3">${formatBonus(row.bonusPoints)}</td>
         </tr>
       `).join("");

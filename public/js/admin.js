@@ -58,175 +58,201 @@
   const loadHomepageContentBtn = document.getElementById("loadHomepageContentBtn");
   const saveHomepageContentBtn = document.getElementById("saveHomepageContentBtn");
 
- function showHomepageContentMessage(text, type = "success") {
-   if (!homepageContentMessage) return;
-
-   homepageContentMessage.textContent = text;
-   homepageContentMessage.className =
-     type === "success"
-       ? "rounded-xl px-4 py-3 text-sm bg-green-50 border border-green-200 text-green-700"
-       : "rounded-xl px-4 py-3 text-sm bg-red-50 border border-red-200 text-red-700";
-
-   homepageContentMessage.classList.remove("hidden");
- }
-
- addWallOfFameRowBtn?.addEventListener("click", () => {
-   wallOfFameAdminRows?.appendChild(createWallOfFameAdminRow());
- });
-
- loadHomepageContentBtn?.addEventListener("click", loadHomepageContent);
- saveHomepageContentBtn?.addEventListener("click", saveHomepageContent);
-
- function createWallOfFameAdminRow(entry = {}) {
-   const row = document.createElement("div");
-   row.className = "grid grid-cols-1 md:grid-cols-[140px_1fr_1fr_auto] gap-3 items-end";
-   row.innerHTML = `
-     <div>
-       <label class="block text-sm font-medium text-brand-900">Season</label>
-       <input type="number" min="2000" class="w-full mt-1 rounded-xl border border-slate-300 px-3 py-2.5 wall-season" value="${entry.season || ""}">
-     </div>
-     <div>
-       <label class="block text-sm font-medium text-brand-900">Champion</label>
-       <input type="text" class="w-full mt-1 rounded-xl border border-slate-300 px-3 py-2.5 wall-champion" value="${entry.championName || ""}">
-     </div>
-     <div>
-       <label class="block text-sm font-medium text-brand-900">Notes</label>
-       <input type="text" class="w-full mt-1 rounded-xl border border-slate-300 px-3 py-2.5 wall-notes" value="${entry.notes || ""}">
-     </div>
-     <div>
-       <button type="button" class="inline-flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100 remove-wall-row">
-         Remove
-       </button>
-     </div>
-   `;
-
-   row.querySelector(".remove-wall-row")?.addEventListener("click", () => {
-     row.remove();
-   });
-
-   return row;
- }
-
- function getHomepageContentSeason() {
-   const value = Number(seedSeasonEl?.value || 2026);
-   return Number.isFinite(value) ? value : 2026;
- }
-
- async function loadHomepageContent() {
-   try {
-     const season = getHomepageContentSeason();
-     const res = await fetch(`/api/admin/homepage-content?season=${encodeURIComponent(season)}`);
-     const data = await res.json();
-
-     if (!res.ok || !data?.content) {
-       showHomepageContentMessage(data?.error || "Failed to load homepage content", "error");
-       return;
-     }
-
-     const content = data.content;
-     const payouts = content.payouts || {};
-
-     if (homepageFirstPayout) homepageFirstPayout.value = payouts.first || 0;
-     if (homepageSecondPayout) homepageSecondPayout.value = payouts.second || 0;
-     if (homepageThirdPayout) homepageThirdPayout.value = payouts.third || 0;
-     if (homepagePayoutNote) homepagePayoutNote.value = payouts.note || "";
-
-     if (wallOfFameAdminRows) {
-       wallOfFameAdminRows.innerHTML = "";
-       const rows = Array.isArray(content.wallOfFame) ? content.wallOfFame : [];
-       if (rows.length) {
-         rows
-           .sort((a, b) => Number(b.season || 0) - Number(a.season || 0))
-           .forEach((entry) => wallOfFameAdminRows.appendChild(createWallOfFameAdminRow(entry)));
-       } else {
-         wallOfFameAdminRows.appendChild(createWallOfFameAdminRow());
-       }
-     }
-
-     showHomepageContentMessage("Homepage content loaded.");
-   } catch (err) {
-     console.error("loadHomepageContent error:", err);
-     showHomepageContentMessage("Failed to load homepage content", "error");
-   }
- }
-
- async function saveHomepageContent() {
-   try {
-     const season = getHomepageContentSeason();
-
-     const wallOfFame = Array.from(wallOfFameAdminRows?.children || []).map((row) => ({
-       season: Number(row.querySelector(".wall-season")?.value || 0),
-       championName: row.querySelector(".wall-champion")?.value?.trim() || "",
-       notes: row.querySelector(".wall-notes")?.value?.trim() || ""
-     }));
-
-     const payload = {
-       season,
-       payouts: {
-         first: Number(homepageFirstPayout?.value || 0),
-         second: Number(homepageSecondPayout?.value || 0),
-         third: Number(homepageThirdPayout?.value || 0),
-         note: homepagePayoutNote?.value?.trim() || ""
-       },
-       wallOfFame
-     };
-
-     const res = await fetch("/api/admin/homepage-content", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify(payload)
-     });
-
-     const data = await res.json();
-
-     if (!res.ok) {
-       showHomepageContentMessage(data?.error || "Failed to save homepage content", "error");
-       return;
-     }
-
-     showHomepageContentMessage("Homepage content saved.");
-   } catch (err) {
-     console.error("saveHomepageContent error:", err);
-     showHomepageContentMessage("Failed to save homepage content", "error");
-   }
- }
-
- function initAdminTabs() {
-   tabButtons.forEach((btn) => {
-     btn.addEventListener("click", () => {
-       const tabId = btn.dataset.tab;
-
-       tabPanels.forEach((panel) => {
-         panel.classList.toggle("hidden", panel.id !== tabId);
-       });
-
-       tabButtons.forEach((b) => b.classList.remove("active"));
-       btn.classList.add("active");
-
-       if (tabId === "homepageTab") {
-         loadHomepageContent();
-       }
-
-       if (tabId === "usersTab") {
-         loadUsers();
-       }
-     });
-   });
- }
-
   function cx(...parts) {
     return parts.filter(Boolean).join(" ");
   }
 
+  function setMessageBox(el, text, type = "") {
+    if (!el) return;
+
+    el.textContent = text || "";
+
+    if (!text) {
+      el.className = "message";
+      return;
+    }
+
+    const base = "message mt-4 rounded-xl px-4 py-3 font-semibold";
+    const tone =
+      type === "error"
+        ? "bg-red-50 border border-red-200 text-red-700"
+        : type === "success"
+        ? "bg-green-50 border border-green-200 text-green-700"
+        : type === "info"
+        ? "bg-blue-50 border border-blue-200 text-blue-700"
+        : "text-slate-700";
+
+    el.className = `${base} ${tone}`;
+  }
+
+  function showMessage(text, type) {
+    setMessageBox(formMessage, text, type);
+  }
+
+  function showSeedMessage(text, type) {
+    setMessageBox(seedMessage, text, type);
+  }
+
+  function showUserFormMessage(text, type) {
+    setMessageBox(userFormMessage, text, type);
+  }
+
+  function showUsersMessage(text, type) {
+    setMessageBox(usersMessage, text, type);
+  }
+
   function showTiebreakerMessage(text, type = "info") {
-    if (!tiebreakerMessage) return;
+    setMessageBox(tiebreakerMessage, text, type);
+  }
 
-    tiebreakerMessage.textContent = text || "";
-    tiebreakerMessage.className = "message";
+  function showHomepageContentMessage(text, type = "success") {
+    if (!homepageContentMessage) return;
 
-    if (type === "error") tiebreakerMessage.classList.add("error");
-    if (type === "success") tiebreakerMessage.classList.add("success");
-    if (type === "info") tiebreakerMessage.classList.add("info");
+    homepageContentMessage.textContent = text || "";
+    homepageContentMessage.className =
+      type === "success"
+        ? "rounded-xl px-4 py-3 text-sm bg-green-50 border border-green-200 text-green-700"
+        : "rounded-xl px-4 py-3 text-sm bg-red-50 border border-red-200 text-red-700";
+
+    homepageContentMessage.classList.remove("hidden");
+  }
+
+  function createWallOfFameAdminRow(entry = {}) {
+    const row = document.createElement("div");
+    row.className = "grid grid-cols-1 md:grid-cols-[140px_1fr_1fr_auto] gap-3 items-end";
+    row.innerHTML = `
+      <div>
+        <label class="block text-sm font-medium text-brand-900">Season</label>
+        <input type="number" min="2000" class="w-full mt-1 rounded-xl border border-slate-300 px-3 py-2.5 wall-season" value="${entry.season || ""}">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-brand-900">Champion</label>
+        <input type="text" class="w-full mt-1 rounded-xl border border-slate-300 px-3 py-2.5 wall-champion" value="${entry.championName || ""}">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-brand-900">Notes</label>
+        <input type="text" class="w-full mt-1 rounded-xl border border-slate-300 px-3 py-2.5 wall-notes" value="${entry.notes || ""}">
+      </div>
+      <div>
+        <button type="button" class="inline-flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100 remove-wall-row">
+          Remove
+        </button>
+      </div>
+    `;
+
+    row.querySelector(".remove-wall-row")?.addEventListener("click", () => {
+      row.remove();
+    });
+
+    return row;
+  }
+
+  function getHomepageContentSeason() {
+    const value = Number(seedSeasonEl?.value || 2026);
+    return Number.isFinite(value) ? value : 2026;
+  }
+
+  async function loadHomepageContent() {
+    try {
+      const season = getHomepageContentSeason();
+      const res = await fetch(`/api/admin/homepage-content?season=${encodeURIComponent(season)}`);
+      const data = await res.json();
+
+      if (!res.ok || !data?.content) {
+        showHomepageContentMessage(data?.error || "Failed to load homepage content", "error");
+        return;
+      }
+
+      const content = data.content;
+      const payouts = content.payouts || {};
+
+      if (homepageFirstPayout) homepageFirstPayout.value = payouts.first || 0;
+      if (homepageSecondPayout) homepageSecondPayout.value = payouts.second || 0;
+      if (homepageThirdPayout) homepageThirdPayout.value = payouts.third || 0;
+      if (homepagePayoutNote) homepagePayoutNote.value = payouts.note || "";
+
+      if (wallOfFameAdminRows) {
+        wallOfFameAdminRows.innerHTML = "";
+        const rows = Array.isArray(content.wallOfFame) ? content.wallOfFame : [];
+
+        if (rows.length) {
+          rows
+            .sort((a, b) => Number(b.season || 0) - Number(a.season || 0))
+            .forEach((entry) => wallOfFameAdminRows.appendChild(createWallOfFameAdminRow(entry)));
+        } else {
+          wallOfFameAdminRows.appendChild(createWallOfFameAdminRow());
+        }
+      }
+
+      showHomepageContentMessage("Homepage content loaded.");
+    } catch (err) {
+      console.error("loadHomepageContent error:", err);
+      showHomepageContentMessage("Failed to load homepage content", "error");
+    }
+  }
+
+  async function saveHomepageContent() {
+    try {
+      const season = getHomepageContentSeason();
+
+      const wallOfFame = Array.from(wallOfFameAdminRows?.children || []).map((row) => ({
+        season: Number(row.querySelector(".wall-season")?.value || 0),
+        championName: row.querySelector(".wall-champion")?.value?.trim() || "",
+        notes: row.querySelector(".wall-notes")?.value?.trim() || ""
+      }));
+
+      const payload = {
+        season,
+        payouts: {
+          first: Number(homepageFirstPayout?.value || 0),
+          second: Number(homepageSecondPayout?.value || 0),
+          third: Number(homepageThirdPayout?.value || 0),
+          note: homepagePayoutNote?.value?.trim() || ""
+        },
+        wallOfFame
+      };
+
+      const res = await fetch("/api/admin/homepage-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showHomepageContentMessage(data?.error || "Failed to save homepage content", "error");
+        return;
+      }
+
+      showHomepageContentMessage("Homepage content saved.");
+    } catch (err) {
+      console.error("saveHomepageContent error:", err);
+      showHomepageContentMessage("Failed to save homepage content", "error");
+    }
+  }
+
+  function initAdminTabs() {
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tabId = btn.dataset.tab;
+
+        tabPanels.forEach((panel) => {
+          panel.classList.toggle("hidden", panel.id !== tabId);
+        });
+
+        tabButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        if (tabId === "homepageTab") {
+          loadHomepageContent();
+        }
+
+        if (tabId === "usersTab") {
+          loadUsers();
+        }
+      });
+    });
   }
 
   async function loadSeasonTiebreaker() {
@@ -240,8 +266,26 @@
     }
 
     try {
-      const res = await fetch(`/api/admin/playoff/season-settings?season=${encodeURIComponent(season)}`);
-      const data = await res.json();
+      const url = new URL("/api/admin/season-settings", window.location.origin);
+      url.searchParams.set("season", String(season));
+
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          Accept: "application/json"
+        }
+      });
+
+      const text = await res.text();
+      let data = {};
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        console.error("loadSeasonTiebreaker non-JSON response:", text);
+        showTiebreakerMessage("Server returned an invalid response.", "error");
+        return;
+      }
 
       if (!res.ok) {
         showTiebreakerMessage(data.error || "Failed to load tiebreaker.", "error");
@@ -271,24 +315,42 @@
       return;
     }
 
-    if (!Number.isFinite(actualTiebreakerPoints) || actualTiebreakerPoints < 50 || actualTiebreakerPoints > 400) {
+    if (
+      !Number.isFinite(actualTiebreakerPoints) ||
+      actualTiebreakerPoints < 50 ||
+      actualTiebreakerPoints > 400
+    ) {
       showTiebreakerMessage("Actual tiebreaker points must be between 50 and 400.", "error");
       return;
     }
 
     try {
-      const res = await fetch("/api/admin/playoff/season-settings/tiebreaker", {
+      const url = new URL("/api/admin/season-settings/tiebreaker", window.location.origin);
+
+      const payload = {
+        season,
+        actualTiebreakerPoints
+      };
+
+      const res = await fetch(url.toString(), {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          Accept: "application/json"
         },
-        body: JSON.stringify({
-          season,
-          actualTiebreakerPoints
-        })
+        body: JSON.stringify(payload)
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      let data = {};
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        console.error("saveSeasonTiebreaker non-JSON response:", text);
+        showTiebreakerMessage("Server returned an invalid response.", "error");
+        return;
+      }
 
       if (!res.ok) {
         showTiebreakerMessage(data.error || "Failed to save tiebreaker.", "error");
@@ -301,61 +363,6 @@
       showTiebreakerMessage("Server error saving tiebreaker.", "error");
     }
   }
-
-  loadTiebreakerBtn?.addEventListener("click", loadSeasonTiebreaker);
-  saveTiebreakerBtn?.addEventListener("click", saveSeasonTiebreaker);
-
-  function setMessageBox(el, text, type = "") {
-    el.textContent = text || "";
-
-    if (!text) {
-      el.className = "message";
-      return;
-    }
-
-    const base = "message mt-4 rounded-xl px-4 py-3 font-semibold";
-    const tone =
-      type === "error"
-        ? "bg-red-50 border border-red-200 text-red-700"
-        : type === "success"
-        ? "bg-green-50 border border-green-200 text-green-700"
-        : type === "info"
-        ? "bg-blue-50 border border-blue-200 text-blue-700"
-        : "text-slate-700";
-
-    el.className = `${base} ${tone}`;
-  }
-
-  function showMessage(text, type) {
-    setMessageBox(formMessage, text, type);
-  }
-
-  function showSeedMessage(text, type) {
-    setMessageBox(seedMessage, text, type);
-  }
-
-    function showUserFormMessage(text, type) {
-      setMessageBox(userFormMessage, text, type);
-    }
-
-    function showUsersMessage(text, type) {
-      setMessageBox(usersMessage, text, type);
-    }
-
-    function initAdminTabs() {
-      tabButtons.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const tabId = btn.dataset.tab;
-
-          tabPanels.forEach((panel) => {
-            panel.classList.toggle("hidden", panel.id !== tabId);
-          });
-
-          tabButtons.forEach((b) => b.classList.remove("active"));
-          btn.classList.add("active");
-        });
-      });
-    }
 
   function normalizeTeamAbbr(value) {
     return String(value || "").trim().toUpperCase();
@@ -375,20 +382,20 @@
 
     if (r === "2") {
       return {
-        "s1": { higher: "", lower: "", label: "Semifinal 1" },
-        "s2": { higher: "", lower: "", label: "Semifinal 2" }
+        s1: { higher: "", lower: "", label: "Semifinal 1" },
+        s2: { higher: "", lower: "", label: "Semifinal 2" }
       };
     }
 
     if (r === "3") {
       return {
-        "conf": { higher: "", lower: "", label: "Conference Finals" }
+        conf: { higher: "", lower: "", label: "Conference Finals" }
       };
     }
 
     if (r === "4") {
       return {
-        "finals": { higher: "", lower: "", label: "NBA Finals" }
+        finals: { higher: "", lower: "", label: "NBA Finals" }
       };
     }
 
@@ -612,6 +619,8 @@
   }
 
   function renderTeamPreview(previewEl, team) {
+    if (!previewEl) return;
+
     if (!team) {
       previewEl.innerHTML = "";
       return;
@@ -631,6 +640,8 @@
     const button = document.getElementById(buttonId);
     const preview = document.getElementById(previewId);
     const options = document.getElementById(optionsId);
+
+    if (!hiddenInput || !button || !preview || !options) return;
 
     function buildOptions() {
       const teams = getTeamsForConference(conferenceEl.value);
@@ -652,8 +663,8 @@
           const team = teams.find((t) => t.abbr === abbr);
 
           hiddenInput.value = abbr;
-          button.textContent = `${team.abbr} selected`;
-          renderTeamPreview(preview, team);
+          button.textContent = team ? `${team.abbr} selected` : "Select team";
+          renderTeamPreview(preview, team || null);
           options.classList.add("hidden");
           updateMatchupLabel();
         });
@@ -667,10 +678,15 @@
   }
 
   function clearTeamPicker(hiddenInputId, buttonId, previewId, optionsId) {
-    document.getElementById(hiddenInputId).value = "";
-    document.getElementById(buttonId).textContent = "Select team";
-    document.getElementById(previewId).innerHTML = "";
-    document.getElementById(optionsId).classList.add("hidden");
+    const hiddenInput = document.getElementById(hiddenInputId);
+    const button = document.getElementById(buttonId);
+    const preview = document.getElementById(previewId);
+    const options = document.getElementById(optionsId);
+
+    if (hiddenInput) hiddenInput.value = "";
+    if (button) button.textContent = "Select team";
+    if (preview) preview.innerHTML = "";
+    if (options) options.classList.add("hidden");
   }
 
   function resetTeamPickers() {
@@ -700,23 +716,23 @@
       btn.addEventListener("click", async () => {
         const seriesId = btn.dataset.seriesId;
 
-        const matchupLabelEl = document.querySelector(
+        const matchupLabelInput = document.querySelector(
           `.edit-matchup-label[data-series-id="${seriesId}"]`
         );
-        const lockAtEl = document.querySelector(
+        const lockAtInput = document.querySelector(
           `.edit-lock-at[data-series-id="${seriesId}"]`
         );
-        const higherTeamEl = document.querySelector(
+        const higherTeamInput = document.querySelector(
           `.edit-higher-team-select[data-series-id="${seriesId}"]`
         );
-        const lowerTeamEl = document.querySelector(
+        const lowerTeamInput = document.querySelector(
           `.edit-lower-team-select[data-series-id="${seriesId}"]`
         );
 
-        const matchupLabel = String(matchupLabelEl?.value || "").trim();
-        const lockAt = String(lockAtEl?.value || "").trim();
-        const higherSeedTeam = String(higherTeamEl?.value || "").trim().toUpperCase();
-        const lowerSeedTeam = String(lowerTeamEl?.value || "").trim().toUpperCase();
+        const matchupLabel = String(matchupLabelInput?.value || "").trim();
+        const lockAt = String(lockAtInput?.value || "").trim();
+        const higherSeedTeam = String(higherTeamInput?.value || "").trim().toUpperCase();
+        const lowerSeedTeam = String(lowerTeamInput?.value || "").trim().toUpperCase();
 
         if (!matchupLabel) {
           alert("Matchup label is required.");
@@ -817,13 +833,13 @@
       }).join("");
     }
 
-    eastSeedList.innerHTML = buildConferenceRows("EAST");
-    westSeedList.innerHTML = buildConferenceRows("WEST");
+    if (eastSeedList) eastSeedList.innerHTML = buildConferenceRows("EAST");
+    if (westSeedList) westSeedList.innerHTML = buildConferenceRows("WEST");
   }
 
   async function loadSeedBoard() {
     showSeedMessage("", "");
-    const season = Number(seedSeasonEl.value);
+    const season = Number(seedSeasonEl?.value);
 
     if (!Number.isFinite(season)) {
       showSeedMessage("Please enter a valid season.", "error");
@@ -848,7 +864,7 @@
   }
 
   function collectSeedAssignments() {
-    const season = Number(seedSeasonEl.value);
+    const season = Number(seedSeasonEl?.value);
     const rows = document.querySelectorAll(".seed-team-select");
     const assignments = [];
 
@@ -910,10 +926,10 @@
   }
 
   async function autofillSeriesFromBackend() {
-    const season = Number(document.getElementById("season").value);
-    const round = Number(roundEl.value);
-    const conference = String(conferenceEl.value || "").trim().toUpperCase();
-    const seriesSlot = String(seriesSlotEl.value || "").trim();
+    const season = Number(document.getElementById("season")?.value);
+    const round = Number(roundEl?.value);
+    const conference = String(conferenceEl?.value || "").trim().toUpperCase();
+    const seriesSlot = String(seriesSlotEl?.value || "").trim();
 
     if (!Number.isFinite(season)) return;
     if (![1, 2, 3, 4].includes(round)) return;
@@ -940,14 +956,23 @@
       const higherTeam = (window.NBA_TEAMS || []).find((t) => t.abbr === data.matchup.higherSeedTeam);
       const lowerTeam = (window.NBA_TEAMS || []).find((t) => t.abbr === data.matchup.lowerSeedTeam);
 
-      document.getElementById("higherSeedTeamBtn").textContent =
-        data.matchup.higherSeedTeam ? `${data.matchup.higherSeedTeam} selected` : "Select team";
+      const higherBtn = document.getElementById("higherSeedTeamBtn");
+      const lowerBtn = document.getElementById("lowerSeedTeamBtn");
 
-      document.getElementById("lowerSeedTeamBtn").textContent =
-        data.matchup.lowerSeedTeam ? `${data.matchup.lowerSeedTeam} selected` : "Select team";
+      if (higherBtn) {
+        higherBtn.textContent = data.matchup.higherSeedTeam
+          ? `${data.matchup.higherSeedTeam} selected`
+          : "Select team";
+      }
 
-      renderTeamPreview(document.getElementById("higherSeedTeamPreview"), higherTeam);
-      renderTeamPreview(document.getElementById("lowerSeedTeamPreview"), lowerTeam);
+      if (lowerBtn) {
+        lowerBtn.textContent = data.matchup.lowerSeedTeam
+          ? `${data.matchup.lowerSeedTeam} selected`
+          : "Select team";
+      }
+
+      renderTeamPreview(document.getElementById("higherSeedTeamPreview"), higherTeam || null);
+      renderTeamPreview(document.getElementById("lowerSeedTeamPreview"), lowerTeam || null);
     } catch (err) {
       console.error("autofillSeriesFromBackend error:", err);
     }
@@ -960,8 +985,8 @@
         const winnerSelect = document.querySelector(`.winner-team-select[data-series-id="${seriesId}"]`);
         const gamesSelect = document.querySelector(`.games-played-select[data-series-id="${seriesId}"]`);
 
-        const winnerTeam = winnerSelect.value;
-        const gamesPlayed = gamesSelect.value;
+        const winnerTeam = winnerSelect?.value;
+        const gamesPlayed = gamesSelect?.value;
 
         if (!winnerTeam) {
           alert("Please select a winner.");
@@ -1003,164 +1028,164 @@
     });
   }
 
-    function renderUsers(users = []) {
-      if (!Array.isArray(users) || users.length === 0) {
+  function renderUsers(users = []) {
+    if (!Array.isArray(users) || users.length === 0) {
+      usersTableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="px-4 py-6 text-center text-slate-500 bg-white">
+            No users found.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    usersTableBody.innerHTML = users.map((user) => {
+      const fullName = [user.firstName || "", user.lastName || ""].join(" ").trim() || "-";
+      const isActive = user.isActive !== false;
+      const isAdmin = !!user.isAdmin;
+      const mustChangePassword = !!user.mustChangePassword;
+
+      return `
+        <tr class="bg-white hover:bg-amber-50/40 transition">
+          <td class="px-4 py-3 font-medium text-slate-900">${fullName}</td>
+          <td class="px-4 py-3 text-slate-700">${user.username || "-"}</td>
+          <td class="px-4 py-3 text-slate-700">${user.email || "-"}</td>
+          <td class="px-4 py-3">
+            <span class="${cx(
+              "inline-flex items-center rounded-full px-3 py-1 text-xs font-bold",
+              isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-700"
+            )}">
+              ${isActive ? "Active" : "Inactive"}
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            <span class="${cx(
+              "inline-flex items-center rounded-full px-3 py-1 text-xs font-bold",
+              isAdmin ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"
+            )}">
+              ${isAdmin ? "Admin" : "User"}
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            <span class="${cx(
+              "inline-flex items-center rounded-full px-3 py-1 text-xs font-bold",
+              mustChangePassword ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-700"
+            )}">
+              ${mustChangePassword ? "Must Change" : "OK"}
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex flex-wrap gap-2 min-w-[280px]">
+              <button
+                type="button"
+                class="toggle-active-btn inline-flex items-center justify-center rounded-xl bg-slate-800 px-3 py-2 text-white text-xs font-semibold shadow-sm transition hover:bg-slate-950"
+                data-user-id="${user._id}"
+              >
+                ${isActive ? "Deactivate" : "Activate"}
+              </button>
+
+              <button
+                type="button"
+                class="toggle-admin-btn inline-flex items-center justify-center rounded-xl bg-orange-500 px-3 py-2 text-white text-xs font-semibold shadow-sm transition hover:bg-orange-600"
+                data-user-id="${user._id}"
+              >
+                ${isAdmin ? "Remove Admin" : "Make Admin"}
+              </button>
+
+              <button
+                type="button"
+                class="reset-password-btn inline-flex items-center justify-center rounded-xl bg-blue-600 px-3 py-2 text-white text-xs font-semibold shadow-sm transition hover:bg-blue-700"
+                data-user-id="${user._id}"
+              >
+                Reset Password
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  async function loadUsers() {
+    showUsersMessage("", "");
+
+    try {
+      const res = await fetch("/api/admin/users");
+      const data = await res.json();
+
+      if (!res.ok) {
+        showUsersMessage(data.error || data.message || "Failed to load users.", "error");
         usersTableBody.innerHTML = `
           <tr>
             <td colspan="7" class="px-4 py-6 text-center text-slate-500 bg-white">
-              No users found.
+              Failed to load users.
             </td>
           </tr>
         `;
         return;
       }
 
-      usersTableBody.innerHTML = users.map((user) => {
-        const fullName = [user.firstName || "", user.lastName || ""].join(" ").trim() || "-";
-        const isActive = user.isActive !== false;
-        const isAdmin = !!user.isAdmin;
-        const mustChangePassword = !!user.mustChangePassword;
-
-        return `
-          <tr class="bg-white hover:bg-amber-50/40 transition">
-            <td class="px-4 py-3 font-medium text-slate-900">${fullName}</td>
-            <td class="px-4 py-3 text-slate-700">${user.username || "-"}</td>
-            <td class="px-4 py-3 text-slate-700">${user.email || "-"}</td>
-            <td class="px-4 py-3">
-              <span class="${cx(
-                "inline-flex items-center rounded-full px-3 py-1 text-xs font-bold",
-                isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-700"
-              )}">
-                ${isActive ? "Active" : "Inactive"}
-              </span>
-            </td>
-            <td class="px-4 py-3">
-              <span class="${cx(
-                "inline-flex items-center rounded-full px-3 py-1 text-xs font-bold",
-                isAdmin ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"
-              )}">
-                ${isAdmin ? "Admin" : "User"}
-              </span>
-            </td>
-            <td class="px-4 py-3">
-              <span class="${cx(
-                "inline-flex items-center rounded-full px-3 py-1 text-xs font-bold",
-                mustChangePassword ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-700"
-              )}">
-                ${mustChangePassword ? "Must Change" : "OK"}
-              </span>
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-2 min-w-[280px]">
-                <button
-                  type="button"
-                  class="toggle-active-btn inline-flex items-center justify-center rounded-xl bg-slate-800 px-3 py-2 text-white text-xs font-semibold shadow-sm transition hover:bg-slate-950"
-                  data-user-id="${user._id}"
-                >
-                  ${isActive ? "Deactivate" : "Activate"}
-                </button>
-
-                <button
-                  type="button"
-                  class="toggle-admin-btn inline-flex items-center justify-center rounded-xl bg-orange-500 px-3 py-2 text-white text-xs font-semibold shadow-sm transition hover:bg-orange-600"
-                  data-user-id="${user._id}"
-                >
-                  ${isAdmin ? "Remove Admin" : "Make Admin"}
-                </button>
-
-                <button
-                  type="button"
-                  class="reset-password-btn inline-flex items-center justify-center rounded-xl bg-blue-600 px-3 py-2 text-white text-xs font-semibold shadow-sm transition hover:bg-blue-700"
-                  data-user-id="${user._id}"
-                >
-                  Reset Password
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join("");
-    }
-
-    async function loadUsers() {
+      renderUsers(Array.isArray(data.users) ? data.users : []);
       showUsersMessage("", "");
+    } catch (err) {
+      console.error("loadUsers error:", err);
+      showUsersMessage("Server error loading users.", "error");
+      usersTableBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="px-4 py-6 text-center text-slate-500 bg-white">
+            Server error loading users.
+          </td>
+        </tr>
+      `;
+    }
+  }
 
-      try {
-        const res = await fetch("/api/admin/users");
-        const data = await res.json();
+  async function createUser(payload) {
+    const res = await fetch("/api/admin/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
 
-        if (!res.ok) {
-          showUsersMessage(data.error || data.message || "Failed to load users.", "error");
-          usersTableBody.innerHTML = `
-            <tr>
-              <td colspan="7" class="px-4 py-6 text-center text-slate-500 bg-white">
-                Failed to load users.
-              </td>
-            </tr>
-          `;
-          return;
-        }
+    return res.json().then((data) => ({ ok: res.ok, data }));
+  }
 
-        renderUsers(Array.isArray(data.users) ? data.users : []);
-        showUsersMessage("", "");
-      } catch (err) {
-        console.error("loadUsers error:", err);
-        showUsersMessage("Server error loading users.", "error");
-        usersTableBody.innerHTML = `
-          <tr>
-            <td colspan="7" class="px-4 py-6 text-center text-slate-500 bg-white">
-              Server error loading users.
-            </td>
-          </tr>
-        `;
+  async function toggleUserStatus(userId) {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
       }
-    }
+    });
 
-    async function createUser(payload) {
-      const res = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
+    return res.json().then((data) => ({ ok: res.ok, data }));
+  }
 
-      return res.json().then((data) => ({ ok: res.ok, data }));
-    }
+  async function toggleUserAdmin(userId) {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/admin`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
 
-    async function toggleUserStatus(userId) {
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
+    return res.json().then((data) => ({ ok: res.ok, data }));
+  }
 
-      return res.json().then((data) => ({ ok: res.ok, data }));
-    }
+  async function resetUserPassword(userId, password) {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/reset-password`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ password })
+    });
 
-    async function toggleUserAdmin(userId) {
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/admin`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-
-      return res.json().then((data) => ({ ok: res.ok, data }));
-    }
-
-    async function resetUserPassword(userId, password) {
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/reset-password`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ password })
-      });
-
-      return res.json().then((data) => ({ ok: res.ok, data }));
-    }
+    return res.json().then((data) => ({ ok: res.ok, data }));
+  }
 
   seriesForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -1249,114 +1274,124 @@
   document.getElementById("filterSeason").addEventListener("change", loadSeries);
   document.getElementById("filterRound").addEventListener("change", loadSeries);
 
-  loadSeedsBtn.addEventListener("click", loadSeedBoard);
-  saveSeedsBtn.addEventListener("click", saveSeedBoard);
+  loadSeedsBtn?.addEventListener("click", loadSeedBoard);
+  saveSeedsBtn?.addEventListener("click", saveSeedBoard);
+
+  loadTiebreakerBtn?.addEventListener("click", loadSeasonTiebreaker);
+  saveTiebreakerBtn?.addEventListener("click", saveSeasonTiebreaker);
+
+  addWallOfFameRowBtn?.addEventListener("click", () => {
+    wallOfFameAdminRows?.appendChild(createWallOfFameAdminRow());
+  });
+
+  loadHomepageContentBtn?.addEventListener("click", loadHomepageContent);
+  saveHomepageContentBtn?.addEventListener("click", saveHomepageContent);
 
   initAdminTabs();
 
-    if (createUserForm) {
-      createUserForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        showUserFormMessage("", "");
+  if (createUserForm) {
+    createUserForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      showUserFormMessage("", "");
 
-        const payload = {
-          firstName: document.getElementById("newFirstName").value.trim(),
-          lastName: document.getElementById("newLastName").value.trim(),
-          username: document.getElementById("newUsername").value.trim(),
-          email: document.getElementById("newEmail").value.trim(),
-          password: document.getElementById("createUserPassword").value.trim(),
-          isAdmin: document.getElementById("newIsAdmin").checked
-        };
+      const payload = {
+        firstName: document.getElementById("newFirstName").value.trim(),
+        lastName: document.getElementById("newLastName").value.trim(),
+        username: document.getElementById("newUsername").value.trim(),
+        email: document.getElementById("newEmail").value.trim(),
+        password: document.getElementById("createUserPassword").value.trim(),
+        isAdmin: document.getElementById("newIsAdmin").checked
+      };
 
-        if (!payload.username) {
-          showUserFormMessage("Username is required.", "error");
+      if (!payload.username) {
+        showUserFormMessage("Username is required.", "error");
+        return;
+      }
+
+      if (!payload.password) {
+        showUserFormMessage("Temporary password is required.", "error");
+        return;
+      }
+
+      try {
+        const result = await createUser(payload);
+
+        if (!result.ok) {
+          showUserFormMessage(result.data.error || result.data.message || "Failed to create user.", "error");
           return;
         }
 
-        if (!payload.password) {
-          showUserFormMessage("Temporary password is required.", "error");
-          return;
-        }
+        showUserFormMessage(result.data.message || "User created successfully.", "success");
+        createUserForm.reset();
+        await loadUsers();
+      } catch (err) {
+        console.error("create user error:", err);
+        showUserFormMessage("Server error creating user.", "error");
+      }
+    });
+  }
 
-        try {
-          const result = await createUser(payload);
+  if (loadUsersBtn) {
+    loadUsersBtn.addEventListener("click", loadUsers);
+  }
+
+  if (usersTableBody) {
+    usersTableBody.addEventListener("click", async (e) => {
+      const activeBtn = e.target.closest(".toggle-active-btn");
+      const adminBtn = e.target.closest(".toggle-admin-btn");
+      const resetBtn = e.target.closest(".reset-password-btn");
+
+      try {
+        if (activeBtn) {
+          const userId = activeBtn.dataset.userId;
+          const result = await toggleUserStatus(userId);
 
           if (!result.ok) {
-            showUserFormMessage(result.data.error || result.data.message || "Failed to create user.", "error");
+            alert(result.data.error || result.data.message || "Failed to update user status.");
             return;
           }
 
-          showUserFormMessage(result.data.message || "User created successfully.", "success");
-          createUserForm.reset();
+          showUsersMessage(result.data.message || "User status updated.", "success");
           await loadUsers();
-        } catch (err) {
-          console.error("create user error:", err);
-          showUserFormMessage("Server error creating user.", "error");
+          return;
         }
-      });
-    }
 
-    if (loadUsersBtn) {
-      loadUsersBtn.addEventListener("click", loadUsers);
-    }
+        if (adminBtn) {
+          const userId = adminBtn.dataset.userId;
+          const result = await toggleUserAdmin(userId);
 
-    if (usersTableBody) {
-      usersTableBody.addEventListener("click", async (e) => {
-        const activeBtn = e.target.closest(".toggle-active-btn");
-        const adminBtn = e.target.closest(".toggle-admin-btn");
-        const resetBtn = e.target.closest(".reset-password-btn");
-
-        try {
-          if (activeBtn) {
-            const userId = activeBtn.dataset.userId;
-            const result = await toggleUserStatus(userId);
-
-            if (!result.ok) {
-              alert(result.data.error || result.data.message || "Failed to update user status.");
-              return;
-            }
-
-            showUsersMessage(result.data.message || "User status updated.", "success");
-            await loadUsers();
+          if (!result.ok) {
+            alert(result.data.error || result.data.message || "Failed to update admin role.");
             return;
           }
 
-          if (adminBtn) {
-            const userId = adminBtn.dataset.userId;
-            const result = await toggleUserAdmin(userId);
+          showUsersMessage(result.data.message || "User role updated.", "success");
+          await loadUsers();
+          return;
+        }
 
-            if (!result.ok) {
-              alert(result.data.error || result.data.message || "Failed to update admin role.");
-              return;
-            }
+        if (resetBtn) {
+          const userId = resetBtn.dataset.userId;
+          const tempPassword = window.prompt("Enter a temporary password for this user:");
 
-            showUsersMessage(result.data.message || "User role updated.", "success");
-            await loadUsers();
+          if (!tempPassword) return;
+
+          const result = await resetUserPassword(userId, tempPassword);
+
+          if (!result.ok) {
+            alert(result.data.error || result.data.message || "Failed to reset password.");
             return;
           }
 
-          if (resetBtn) {
-            const userId = resetBtn.dataset.userId;
-            const tempPassword = window.prompt("Enter a temporary password for this user:");
-
-            if (!tempPassword) return;
-
-            const result = await resetUserPassword(userId, tempPassword);
-
-            if (!result.ok) {
-              alert(result.data.error || result.data.message || "Failed to reset password.");
-              return;
-            }
-
-            showUsersMessage(result.data.message || "Password reset successfully.", "success");
-            await loadUsers();
-          }
-        } catch (err) {
-          console.error("user action error:", err);
-          alert("Server error performing user action.");
+          showUsersMessage(result.data.message || "Password reset successfully.", "success");
+          await loadUsers();
         }
-      });
-    }
+      } catch (err) {
+        console.error("user action error:", err);
+        alert("Server error performing user action.");
+      }
+    });
+  }
 
   updateConferenceBehavior();
   refreshSeriesSlotOptions();
