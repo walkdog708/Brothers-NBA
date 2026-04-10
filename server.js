@@ -11,6 +11,7 @@ require("./models/User");
 require("./models/PlayoffSeries");
 require("./models/RoundPicks");
 require("./models/HomepageContent");
+require("./models/NotificationReminderLog");
 
 const authRoutes = require("./routes/auth");
 const protectedRoutes = require("./routes/protected");
@@ -18,6 +19,9 @@ const playoffAdminRoutes = require("./routes/playoff.admin");
 const playoffUserRoutes = require("./routes/playoff.user");
 const playoffPublicRoutes = require("./routes/playoff.public");
 const adminUsersRoutes = require("./routes/admin.users");
+
+const notificationsRoutes = require("./routes/notifications");
+const { startPushReminderJob } = require("./utils/push-reminders");
 
 
 const app = express();
@@ -32,7 +36,7 @@ if (!MONGO_URI) {
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static("public"));
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "dev_secret_change_me",
@@ -57,6 +61,7 @@ app.use("/api/playoff", playoffUserRoutes);
 app.use("/api/public", playoffPublicRoutes);
 app.use("/api/admin", adminUsersRoutes);
 app.use("/api", require("./routes/homepage"));
+app.use("/api/notifications", notificationsRoutes);
 
 // Page guards
 function requireLoginPage(req, res, next) {
@@ -108,6 +113,8 @@ mongoose
   .connect(MONGO_URI)
   .then(() => {
     console.log("Connected to MongoDB");
+
+    startPushReminderJob();
 
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);

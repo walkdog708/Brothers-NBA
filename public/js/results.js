@@ -81,92 +81,21 @@
       ? Number(tiebreakerSummary.actualTiebreakerPoints)
       : null;
 
-    const predictions = Array.isArray(tiebreakerSummary.predictions)
-      ? tiebreakerSummary.predictions
-      : [];
-
     tiebreakerSummaryContainer.classList.remove("hidden");
     tiebreakerSummaryContainer.innerHTML = `
       <section class="rounded-2xl border border-amber-200 bg-white shadow-sm overflow-hidden">
         <div class="px-4 sm:px-6 py-4 bg-gradient-to-r from-slate-900 to-amber-500 text-white">
           <h3 class="text-xl sm:text-2xl font-bold">NBA Finals Tiebreaker</h3>
           <p class="mt-1 text-sm text-white/90">
-            These predictions are used to break ties in the final overall standings.
+            If players are tied in total points, the Finals tiebreaker is used next to rank the leaderboard.
           </p>
         </div>
 
         <div class="p-4 sm:p-6">
-          <div class="mb-5 inline-flex items-center rounded-full bg-amber-100 text-amber-900 px-4 py-2 text-sm font-semibold">
+          <div class="inline-flex items-center rounded-full bg-amber-100 text-amber-900 px-4 py-2 text-sm font-semibold">
             Actual clinching game total points:
             <span class="ml-2 text-base font-extrabold">${actual ?? "Not set yet"}</span>
           </div>
-
-          ${
-            predictions.length
-              ? `
-                <div class="overflow-x-auto hidden md:block">
-                  <table class="min-w-full text-sm">
-                    <thead class="bg-slate-100 text-slate-700">
-                      <tr>
-                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">User</th>
-                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Prediction</th>
-                        <th class="px-4 py-3 text-left font-semibold border-b border-slate-200">Off By</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-200 bg-white">
-                      ${predictions.map((item) => `
-                        <tr class="hover:bg-amber-50/40 transition">
-                          <td class="px-4 py-3 font-semibold text-slate-900">${escapeHtml(item.username || "-")}</td>
-                          <td class="px-4 py-3 text-slate-700">
-                            ${Number.isFinite(Number(item.prediction)) ? Number(item.prediction) : "-"}
-                          </td>
-                          <td class="px-4 py-3 text-slate-700">
-                            ${
-                              Number.isFinite(Number(item.diff))
-                                ? `<span class="font-semibold text-amber-700">${Number(item.diff)}</span>`
-                                : "-"
-                            }
-                          </td>
-                        </tr>
-                      `).join("")}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div class="space-y-3 md:hidden">
-                  ${predictions.map((item) => `
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <div class="flex items-center justify-between gap-3">
-                        <div class="font-bold text-slate-900">${escapeHtml(item.username || "-")}</div>
-                        <div class="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-sm font-bold text-white">
-                          ${
-                            Number.isFinite(Number(item.prediction))
-                              ? Number(item.prediction)
-                              : "-"
-                          }
-                        </div>
-                      </div>
-
-                      <div class="mt-3 text-sm text-slate-600">
-                        Off By:
-                        <span class="font-bold text-amber-700">
-                          ${
-                            Number.isFinite(Number(item.diff))
-                              ? Number(item.diff)
-                              : "-"
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  `).join("")}
-                </div>
-              `
-              : `
-                <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-slate-600">
-                  No tiebreaker predictions found.
-                </div>
-              `
-          }
         </div>
       </section>
     `;
@@ -426,11 +355,43 @@
       .join("");
   }
 
+  function getEntryTiebreakerMeta(entry, currentRound, currentAllResults) {
+    const isFinalRound = Number(currentRound) === 4;
+    if (!isFinalRound) {
+      return {
+        show: false,
+        prediction: null,
+        diff: null
+      };
+    }
+
+    const prediction = Number.isFinite(Number(entry?.tiebreakerPrediction))
+      ? Number(entry.tiebreakerPrediction)
+      : null;
+
+    const actual = Number.isFinite(Number(currentAllResults?.tiebreakerSummary?.actualTiebreakerPoints))
+      ? Number(currentAllResults.tiebreakerSummary.actualTiebreakerPoints)
+      : null;
+
+    const diff =
+      Number.isFinite(prediction) && Number.isFinite(actual)
+        ? Math.abs(prediction - actual)
+        : null;
+
+    return {
+      show: true,
+      prediction,
+      diff
+    };
+  }
+
   function renderAllResults(entries, seriesList) {
     if (!Array.isArray(entries) || !entries.length) {
       renderAllResultsPlaceholder("No results available for this round.");
       return;
     }
+
+    const currentRound = roundSelect.value;
 
     const sortedEntries = [...entries].sort((a, b) => {
       const aPts = Number(a?.totalPoints) || 0;
@@ -445,15 +406,34 @@
         );
 
         const sortedSeriesList = sortSeriesByConfidence(seriesList, picksMap);
+        const tiebreakerMeta = getEntryTiebreakerMeta(entry, currentRound, currentAllResultsData);
+
+        const tiebreakerHeaderLine = tiebreakerMeta.show
+          ? `
+            <div class="mt-1 text-xs sm:text-sm text-slate-600">
+              <span class="font-semibold text-slate-700">Tiebreaker:</span>
+              ${Number.isFinite(tiebreakerMeta.prediction) ? tiebreakerMeta.prediction : "—"}
+              ${
+                Number.isFinite(tiebreakerMeta.diff)
+                  ? `<span class="ml-2 text-slate-500">(Diff: ${tiebreakerMeta.diff})</span>`
+                  : ""
+              }
+            </div>
+          `
+          : "";
 
         return `
           <section class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div class="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
-              <div class="flex items-center gap-3 min-w-0">
+            <div class="flex items-start justify-between px-4 py-3 bg-slate-50 border-b border-slate-200 gap-3">
+              <div class="flex items-start gap-3 min-w-0">
                 <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white text-sm font-bold">
                   ${idx + 1}
                 </span>
-                <span class="text-base font-bold text-slate-900 truncate">${entry.username || "-"}</span>
+
+                <div class="min-w-0">
+                  <div class="text-base font-bold text-slate-900 truncate">${escapeHtml(entry.username || "-")}</div>
+                  ${tiebreakerHeaderLine}
+                </div>
               </div>
 
               <span class="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-sm font-bold text-white shrink-0">

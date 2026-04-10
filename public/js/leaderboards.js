@@ -75,17 +75,55 @@
 
   function formatPoints(value) {
     const num = Number(value);
-    if (!Number.isFinite(num)) return value ?? "-";
+    if (!Number.isFinite(num)) return `<span class="text-slate-500">-</span>`;
     return `<span class="font-bold text-slate-900">${num}</span>`;
+  }
+
+  function formatCount(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return `<span class="text-slate-500">-</span>`;
+    return `<span class="font-semibold text-slate-900">${num}</span>`;
   }
 
   function formatBonus(value) {
     const num = Number(value);
-    if (!Number.isFinite(num)) return `<span class="text-slate-500">${value ?? "-"}</span>`;
+    if (!Number.isFinite(num)) return `<span class="text-slate-500">-</span>`;
     if (num > 0) {
       return `<span class="font-semibold text-amber-700">+${num}</span>`;
     }
     return `<span class="text-slate-700">${num}</span>`;
+  }
+
+  function normalizeLeaderboardRows(rows) {
+    return rows.map((row, index) => {
+      const totalPoints =
+        row.totalPoints ??
+        row.points ??
+        row.seasonPoints ??
+        0;
+
+      const correctWinners =
+        row.correctWinners ??
+        row.totalCorrectWinners ??
+        row.correctPicks ??
+        row.winnersCorrect ??
+        0;
+
+      const bonusPoints =
+        row.bonusPoints ??
+        row.totalBonusPoints ??
+        row.bonus ??
+        row.bonusPts ??
+        0;
+
+      return {
+        rank: row.rank ?? index + 1,
+        username: row.username ?? "-",
+        totalPoints,
+        correctWinners,
+        bonusPoints
+      };
+    });
   }
 
   async function fetchSeasonLeaderboard(season) {
@@ -116,7 +154,8 @@
     renderEmptyRow("Loading leaderboard...");
 
     try {
-      const rows = await fetchSeasonLeaderboard(season);
+      const rawRows = await fetchSeasonLeaderboard(season);
+      const rows = normalizeLeaderboardRows(rawRows);
 
       if (!rows.length) {
         renderEmptyRow("No leaderboard entries found.");
@@ -127,14 +166,15 @@
       tableBody.innerHTML = rows.map((row) => `
         <tr class="${rowTone(row.rank)} hover:bg-amber-50/50 transition">
           <td class="px-4 py-3">${rankBadge(row.rank)}</td>
-          <td class="px-4 py-3 font-semibold text-slate-900">${row.username || "-"}</td>
+          <td class="px-4 py-3 font-semibold text-slate-900">${row.username}</td>
           <td class="px-4 py-3">${formatPoints(row.totalPoints)}</td>
-          <td class="px-4 py-3 text-slate-700">${row.roundsPlayed ?? "-"}</td>
+          <td class="px-4 py-3">${formatCount(row.correctWinners)}</td>
           <td class="px-4 py-3">${formatBonus(row.bonusPoints)}</td>
         </tr>
       `).join("");
 
       setMessage("");
+      console.log("Normalized leaderboard rows:", rows);
     } catch (err) {
       console.error("loadLeaderboard error:", err);
       setMessage(err.message || "Server error loading leaderboard", "error");

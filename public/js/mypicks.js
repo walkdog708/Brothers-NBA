@@ -12,7 +12,6 @@
       window.location.href = "/change-password.html";
       return;
     }
-
   } catch (err) {
     console.error("mypicks auth check error:", err);
     window.location.href = "/home.html";
@@ -29,6 +28,10 @@
   const roundStatusSubtext = document.getElementById("roundStatusSubtext");
   const roundSelect = document.getElementById("round");
 
+  const enableNotificationsBtn = document.getElementById("enableNotificationsBtn");
+  const disableNotificationsBtn = document.getElementById("disableNotificationsBtn");
+  const notificationStatus = document.getElementById("notificationStatus");
+
   let currentSeries = [];
   let currentRoundLocked = false;
   let activeSeason = 2026;
@@ -37,6 +40,188 @@
 
   function cx(...parts) {
     return parts.filter(Boolean).join(" ");
+  }
+
+  function getSeriesKey(series) {
+    return String(series?.seriesId || series?._id || "").trim();
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+
+    return outputArray;
+  }
+
+  function setNotificationUi({ enabled, subscribed, supported, permission }) {
+    if (!enableNotificationsBtn || !disableNotificationsBtn || !notificationStatus) return;
+
+    if (!supported) {
+      enableNotificationsBtn.classList.add("hidden");
+      disableNotificationsBtn.classList.add("hidden");
+      notificationStatus.textContent = "Browser notifications are not supported on this device/browser.";
+      return;
+    }
+
+    if (permission === "denied") {
+      enableNotificationsBtn.classList.add("hidden");
+      disableNotificationsBtn.classList.add("hidden");
+      notificationStatus.textContent = "Notifications are blocked in your browser settings.";
+      return;
+    }
+
+    if (enabled && subscribed) {
+      enableNotificationsBtn.classList.add("hidden");
+      disableNotificationsBtn.classList.remove("hidden");
+      notificationStatus.textContent = "Deadline reminders are enabled for this browser.";
+    } else {
+      enableNotificationsBtn.classList.remove("hidden");
+      disableNotificationsBtn.classList.add("hidden");
+      notificationStatus.textContent = "Enable browser reminders for upcoming pick deadlines.";
+    }
+  }
+
+  async function loadNotificationStatus() {
+    const supported =
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      "Notification" in window;
+
+    const permission = supported ? Notification.permission : "default";
+
+    if (!supported) {
+      setNotificationUi({
+        enabled: false,
+        subscribed: false,
+        supported,
+        permission
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/notifications/status");
+      const data = await res.json();
+
+      setNotificationUi({
+        enabled: Boolean(data.enabled),
+        subscribed: Boolean(data.subscribed),
+        supported,
+        permission
+      });
+    } catch (err) {
+      console.error("loadNotificationStatus error:", err);
+      setNotificationUi({
+        enabled: false,
+        subscribed: false,
+        supported,
+        permission
+      });
+    }
+  }
+
+  async function enableNotifications() {
+    try {
+      const supported =
+        "serviceWorker" in navigator &&
+        "PushManager" in window &&
+        "Notification" in window;
+
+      if (!supported) {
+        if (notificationStatus) {
+          notificationStatus.textContent = "This browser does not support push notifications.";
+        }
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+
+      if (permission !== "granted") {
+        setNotificationUi({
+          enabled: false,
+          subscribed: false,
+          supported: true,
+          permission
+        });
+        return;
+      }
+
+      const keyRes = await fetch("/api/notifications/public-key");
+      const keyData = await keyRes.json();
+
+      if (!keyRes.ok || !keyData.publicKey) {
+        throw new Error(keyData.error || "Unable to load push notification public key.");
+      }
+
+      const registration = await navigator.serviceWorker.register("/sw.js");
+
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
+        });
+      }
+
+      const saveRes = await fetch("/api/notifications/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ subscription })
+      });
+
+      const saveData = await saveRes.json();
+
+      if (!saveRes.ok) {
+        throw new Error(saveData.error || "Failed to save push subscription.");
+      }
+
+      await loadNotificationStatus();
+    } catch (err) {
+      console.error("enableNotifications error:", err);
+      if (notificationStatus) {
+        notificationStatus.textContent = err.message || "Failed to enable notifications.";
+      }
+    }
+  }
+
+  async function disableNotifications() {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (subscription) {
+        await subscription.unsubscribe();
+      }
+
+      const res = await fetch("/api/notifications/unsubscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to disable notifications.");
+      }
+
+      await loadNotificationStatus();
+    } catch (err) {
+      console.error("disableNotifications error:", err);
+      if (notificationStatus) {
+        notificationStatus.textContent = err.message || "Failed to disable notifications.";
+      }
+    }
   }
 
   function getAllowedConfidenceValues(round) {
@@ -176,7 +361,7 @@
     const existingMap = new Map();
     if (existingPicksDoc && Array.isArray(existingPicksDoc.picks)) {
       for (const pick of existingPicksDoc.picks) {
-        existingMap.set(pick.seriesId, pick);
+        existingMap.set(String(pick.seriesId || "").trim(), pick);
       }
     }
 
@@ -184,38 +369,39 @@
     const allowedConfidenceValues = getAllowedConfidenceValues(currentRound);
 
     seriesContainer.innerHTML = allSeries.map((series) => {
-      const existing = existingMap.get(series.seriesId);
+      const seriesKey = getSeriesKey(series);
+      const existing = existingMap.get(seriesKey);
       const status = series.computedStatus || "OPEN";
       const isEditable = status === "OPEN";
       const missedLockedPick = !isEditable && !existing;
 
       return `
-        <div class="${getCardClass(status)}" data-series-id="${series.seriesId}" data-status="${status}">
+        <div class="${getCardClass(status)}" data-series-id="${seriesKey}" data-status="${status}">
           <h3 class="${THEME.title || "text-2xl font-bold text-slate-900 tracking-tight"}">${series.matchupLabel}</h3>
 
           <div class="${THEME.metaWrap || "flex flex-wrap gap-2 mt-3 mb-4"}">
             <span class="${THEME.metaPill || "inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs sm:text-sm text-slate-700"}"><strong class="mr-1 text-slate-900">Conference:</strong> ${series.conference}</span>
             <span class="${THEME.metaPill || "inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs sm:text-sm text-slate-700"}"><strong class="mr-1 text-slate-900">Slot:</strong> ${series.seriesSlot || "-"}</span>
-            <span class="${THEME.metaPill || "inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs sm:text-sm text-slate-700"}"><strong class="mr-1 text-slate-900">Locks:</strong> ${new Date(series.lockAt).toLocaleString()}</span>
+            <span class="${THEME.metaPill || "inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs sm:text-sm text-slate-700"}"><strong class="mr-1 text-slate-900">Locks:</strong> ${series.lockAt ? new Date(series.lockAt).toLocaleString() : "-"}</span>
             <span class="${getStatusClass(status)}">${status}</span>
           </div>
 
-        ${missedLockedPick ? `
-          <div class="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-            No pick was submitted before this series locked.
-          </div>
-        ` : ""}
+          ${missedLockedPick ? `
+            <div class="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              No pick was submitted before this series locked.
+            </div>
+          ` : ""}
 
           <label class="${THEME.label || "block text-sm font-semibold text-slate-900 mb-2"}">Pick Winner</label>
           <div class="${THEME.pickButtons || "pick-buttons grid grid-cols-2 gap-3 mt-4"}">
             ${teamButtonHTML({
               teamAbbr: series.higherSeedTeam,
-              selected: existing?.pickTeam === series.higherSeedTeam,
+              selected: String(existing?.pickTeam || "").trim().toUpperCase() === String(series.higherSeedTeam || "").trim().toUpperCase(),
               disabled: !isEditable
             })}
             ${teamButtonHTML({
               teamAbbr: series.lowerSeedTeam,
-              selected: existing?.pickTeam === series.lowerSeedTeam,
+              selected: String(existing?.pickTeam || "").trim().toUpperCase() === String(series.lowerSeedTeam || "").trim().toUpperCase(),
               disabled: !isEditable
             })}
           </div>
@@ -227,10 +413,10 @@
               <label class="${THEME.label || "block text-sm font-semibold text-slate-900 mb-2"}">Predicted Games</label>
               <select class="predicted-games ${THEME.input || "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"}" ${isEditable ? "" : "disabled"}>
                 <option value="">Select</option>
-                <option value="4" ${existing?.predictedGames === 4 ? "selected" : ""}>4</option>
-                <option value="5" ${existing?.predictedGames === 5 ? "selected" : ""}>5</option>
-                <option value="6" ${existing?.predictedGames === 6 ? "selected" : ""}>6</option>
-                <option value="7" ${existing?.predictedGames === 7 ? "selected" : ""}>7</option>
+                <option value="4" ${Number(existing?.predictedGames) === 4 ? "selected" : ""}>4</option>
+                <option value="5" ${Number(existing?.predictedGames) === 5 ? "selected" : ""}>5</option>
+                <option value="6" ${Number(existing?.predictedGames) === 6 ? "selected" : ""}>6</option>
+                <option value="7" ${Number(existing?.predictedGames) === 7 ? "selected" : ""}>7</option>
               </select>
             </div>
 
@@ -239,7 +425,7 @@
               <select class="confidence ${THEME.input || "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"}" ${isEditable ? "" : "disabled"}>
                 <option value="">Select</option>
                 ${allowedConfidenceValues.map((num) => `
-                  <option value="${num}" ${existing?.confidence === num ? "selected" : ""}>${num}</option>
+                  <option value="${num}" ${Number(existing?.confidence) === num ? "selected" : ""}>${num}</option>
                 `).join("")}
               </select>
             </div>
@@ -280,7 +466,7 @@
   }
 
   function getSelectedConfidenceMap() {
-    const cards = document.querySelectorAll(".series-card");
+    const cards = document.querySelectorAll('.series-card[data-status="OPEN"]');
     const selectedMap = new Map();
 
     cards.forEach((card) => {
@@ -336,7 +522,7 @@
 
   async function detectCurrentOpenRound() {
     const rounds = [1, 2, 3, 4];
-    let latestRoundWithSeries = null;
+    let latestRoundWithOpenSeries = null;
 
     for (const round of rounds) {
       try {
@@ -348,19 +534,18 @@
 
         const data = await res.json();
 
-        const allSeries =
+        const openSeries =
           (Array.isArray(data.series) && data.series) ||
           (Array.isArray(data.allSeries) && data.allSeries) ||
           (Array.isArray(data.data) && data.data) ||
           [];
 
-        if (allSeries.length > 0) {
-          latestRoundWithSeries = String(round);
+        if (openSeries.length > 0) {
+          latestRoundWithOpenSeries = String(round);
         }
 
         const roundLocked = !!(data.roundLocked ?? data.locked ?? false);
-
-        const hasOpenSeries = allSeries.some(
+        const hasOpenSeries = openSeries.some(
           (s) => (s.computedStatus || "OPEN") === "OPEN"
         );
 
@@ -372,7 +557,7 @@
       }
     }
 
-    return latestRoundWithSeries || roundSelect.value || "1";
+    return latestRoundWithOpenSeries || roundSelect.value || "1";
   }
 
   function renderTiebreaker(existingPicksDoc, roundLocked) {
@@ -479,7 +664,6 @@
 
       setRoundBanner(allSeries, currentRoundLocked, lockReason);
       renderSeries(allSeries, picksDoc);
-
       renderTiebreaker(picksDoc, currentRoundLocked);
 
       const openSeriesCount = allSeries.filter((s) => (s.computedStatus || "OPEN") === "OPEN").length;
@@ -492,7 +676,7 @@
             "info"
           );
         } else {
-          showMessage("Loaded your saved picks for this round.", "success");
+          showMessage("Your picks have been saved.", "success");
         }
       } else if (currentRoundLocked) {
         showMessage(
@@ -513,88 +697,16 @@
     }
   }
 
-    function collectVisibleRoundPicksForValidation() {
-      const cards = document.querySelectorAll(".series-card");
-      const picks = [];
-
-      for (const card of cards) {
-        const seriesId = card.dataset.seriesId;
-        const status = card.dataset.status || "OPEN";
-        const pickTeam = card.querySelector(".pick-team-input")?.value || "";
-        const predictedGames = Number(card.querySelector(".predicted-games")?.value);
-        const confidence = Number(card.querySelector(".confidence")?.value);
-        const allowedConfidenceValues = getAllowedConfidenceValues(Number(roundSelect.value));
-
-        const hasAnySavedValue =
-          !!pickTeam ||
-          [4, 5, 6, 7].includes(predictedGames) ||
-          (Number.isFinite(confidence) && confidence > 0);
-
-        if (status === "OPEN") {
-          if (!pickTeam) {
-            throw new Error(`Please choose a winner for ${seriesId}`);
-          }
-
-          if (![4, 5, 6, 7].includes(predictedGames)) {
-            throw new Error(`Please choose predicted games for ${seriesId}`);
-          }
-
-          if (!Number.isFinite(confidence) || !allowedConfidenceValues.includes(confidence)) {
-            throw new Error(`Please choose a valid confidence for ${seriesId}`);
-          }
-
-          picks.push({
-            seriesId,
-            status,
-            pickTeam,
-            predictedGames,
-            confidence
-          });
-
-          continue;
-        }
-
-        // LOCKED / FINAL:
-        // if user never made a pick before lock, allow it to remain blank
-        if (!hasAnySavedValue) {
-          continue;
-        }
-
-        // if a locked/final pick exists, it must be complete and valid
-        if (!pickTeam) {
-          throw new Error(`Saved locked pick is missing a winner for ${seriesId}`);
-        }
-
-        if (![4, 5, 6, 7].includes(predictedGames)) {
-          throw new Error(`Saved locked pick is missing predicted games for ${seriesId}`);
-        }
-
-        if (!Number.isFinite(confidence) || !allowedConfidenceValues.includes(confidence)) {
-          throw new Error(`Saved locked pick has invalid confidence for ${seriesId}`);
-        }
-
-        picks.push({
-          seriesId,
-          status,
-          pickTeam,
-          predictedGames,
-          confidence
-        });
-      }
-
-      return picks;
-    }
-
   function collectPicks() {
     const openCards = document.querySelectorAll('.series-card[data-status="OPEN"]');
     const openPicks = [];
+    const allowedConfidenceValues = getAllowedConfidenceValues(Number(roundSelect.value));
 
     for (const card of openCards) {
       const seriesId = card.dataset.seriesId;
-      const pickTeam = card.querySelector(".pick-team-input").value;
-      const predictedGames = Number(card.querySelector(".predicted-games").value);
-      const confidence = Number(card.querySelector(".confidence").value);
-      const allowedConfidenceValues = getAllowedConfidenceValues(Number(roundSelect.value));
+      const pickTeam = card.querySelector(".pick-team-input")?.value || "";
+      const predictedGames = Number(card.querySelector(".predicted-games")?.value);
+      const confidence = Number(card.querySelector(".confidence")?.value);
 
       if (!pickTeam) {
         throw new Error(`Please choose a winner for ${seriesId}`);
@@ -616,18 +728,10 @@
       });
     }
 
-    const fullRoundPicks = collectVisibleRoundPicksForValidation();
-    const confidenceValues = fullRoundPicks.map((p) => p.confidence);
-    const allowedConfidenceValues = getAllowedConfidenceValues(Number(roundSelect.value));
+    const confidenceValues = openPicks.map((p) => p.confidence);
 
     if (new Set(confidenceValues).size !== confidenceValues.length) {
-      throw new Error("Each confidence value must be used only once within this round.");
-    }
-
-    for (const value of confidenceValues) {
-      if (!allowedConfidenceValues.includes(value)) {
-        throw new Error(`Confidence values must come from: ${allowedConfidenceValues.join(", ")}`);
-      }
+      throw new Error("Each confidence value must be used only once among open series.");
     }
 
     return openPicks;
@@ -662,11 +766,10 @@
     }
 
     const round = roundSelect.value;
-    let tiebreakerPrediction = null;
 
     try {
       const picks = collectPicks();
-      tiebreakerPrediction = collectTiebreakerPrediction();
+      const tiebreakerPrediction = collectTiebreakerPrediction();
 
       const res = await fetch("/api/playoff/mypicks", {
         method: "POST",
@@ -709,6 +812,16 @@
 
   roundSelect.addEventListener("change", handleRoundChange);
   submitBtn.addEventListener("click", submitPicks);
+
+  if (enableNotificationsBtn) {
+    enableNotificationsBtn.addEventListener("click", enableNotifications);
+  }
+
+  if (disableNotificationsBtn) {
+    disableNotificationsBtn.addEventListener("click", disableNotifications);
+  }
+
+  await loadNotificationStatus();
 
   const detectedRound = await detectCurrentOpenRound();
   roundSelect.value = detectedRound;

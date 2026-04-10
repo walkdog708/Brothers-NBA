@@ -45,6 +45,10 @@ function getRoundLockState(allSeries) {
   };
 }
 
+function getSeriesKey(series) {
+  return String(series?.seriesId || series?._id || "").trim();
+}
+
 // GET /api/playoff/series/open?season=2026&round=1
 router.get("/series/open", requireAuth, requirePasswordChangeCleared, async (req, res) => {
   try {
@@ -59,10 +63,7 @@ router.get("/series/open", requireAuth, requirePasswordChangeCleared, async (req
       return res.status(400).json({ error: "Round must be 1, 2, 3, or 4" });
     }
 
-    const allSeriesDocs = await PlayoffSeries.find({
-      season,
-      round
-    }).sort({
+    const allSeriesDocs = await PlayoffSeries.find({ season, round }).sort({
       conference: 1,
       seriesSlot: 1,
       higherSeed: 1
@@ -182,15 +183,15 @@ router.get("/home-summary", requireAuth, requirePasswordChangeCleared, async (re
 
       const pickDoc = picksByRound.get(round);
       const pickMap = new Map(
-        (pickDoc?.picks || []).map((p) => [String(p.seriesId), p])
+        (pickDoc?.picks || []).map((p) => [String(p.seriesId || "").trim(), p])
       );
 
       const pickedOpenSeries = openSeries.filter((series) =>
-        pickMap.has(String(series.seriesId))
+        pickMap.has(getSeriesKey(series))
       );
 
       const missingOpenSeries = openSeries.filter((series) =>
-        !pickMap.has(String(series.seriesId))
+        !pickMap.has(getSeriesKey(series))
       );
 
       const nextLockAt =
@@ -275,10 +276,7 @@ router.post("/mypicks", requireAuth, requirePasswordChangeCleared, async (req, r
       }
     }
 
-    const allSeriesDocs = await PlayoffSeries.find({
-      season,
-      round
-    }).sort({
+    const allSeriesDocs = await PlayoffSeries.find({ season, round }).sort({
       conference: 1,
       seriesSlot: 1,
       higherSeed: 1
@@ -303,130 +301,130 @@ router.post("/mypicks", requireAuth, requirePasswordChangeCleared, async (req, r
       });
     }
 
-        const openSeries = allSeries.filter((s) => s.computedStatus === "OPEN");
-        const lockedSeries = allSeries.filter((s) => s.computedStatus !== "OPEN");
-        const allowedConfidenceValues = getAllowedConfidenceValues(round);
+    const openSeries = allSeries.filter((s) => s.computedStatus === "OPEN");
+    const lockedSeries = allSeries.filter((s) => s.computedStatus !== "OPEN");
+    const allowedConfidenceValues = getAllowedConfidenceValues(round);
 
-        const existingDoc = await RoundPicks.findOne({ username, season, round });
+    const existingDoc = await RoundPicks.findOne({ username, season, round });
 
-        const openSeriesIds = new Set(openSeries.map((s) => String(s.seriesId)));
-        const allSeriesById = new Map(allSeries.map((s) => [String(s.seriesId), s]));
-        const existingPickBySeriesId = new Map(
-          (existingDoc?.picks || []).map((p) => [String(p.seriesId), p])
-        );
+    const openSeriesIds = new Set(openSeries.map((s) => getSeriesKey(s)));
+    const allSeriesById = new Map(allSeries.map((s) => [getSeriesKey(s), s]));
+    const existingPickBySeriesId = new Map(
+      (existingDoc?.picks || []).map((p) => [String(p.seriesId || "").trim(), p])
+    );
 
-        if (picks.length !== openSeries.length) {
-          return res.status(400).json({
-            error: `You must submit picks for all ${openSeries.length} unlocked series`
-          });
-        }
+    if (picks.length !== openSeries.length) {
+      return res.status(400).json({
+        error: `You must submit picks for all ${openSeries.length} unlocked series`
+      });
+    }
 
-        const submittedSeriesIds = new Set();
-        const submittedOpenPicks = [];
+    const submittedSeriesIds = new Set();
+    const submittedOpenPicks = [];
 
-        for (const pick of picks) {
-          const seriesId = String(pick.seriesId || "").trim();
-          const pickTeam = String(pick.pickTeam || "").trim().toUpperCase();
-          const confidence = Number(pick.confidence);
-          const predictedGames = Number(pick.predictedGames);
+    for (const pick of picks) {
+      const seriesId = String(pick.seriesId || "").trim();
+      const pickTeam = String(pick.pickTeam || "").trim().toUpperCase();
+      const confidence = Number(pick.confidence);
+      const predictedGames = Number(pick.predictedGames);
 
-          if (!openSeriesIds.has(seriesId)) {
-            return res.status(400).json({ error: `Invalid or locked series: ${seriesId}` });
-          }
+      if (!openSeriesIds.has(seriesId)) {
+        return res.status(400).json({ error: `Invalid or locked series: ${seriesId}` });
+      }
 
-          if (submittedSeriesIds.has(seriesId)) {
-            return res.status(400).json({ error: `Duplicate series pick: ${seriesId}` });
-          }
-          submittedSeriesIds.add(seriesId);
+      if (submittedSeriesIds.has(seriesId)) {
+        return res.status(400).json({ error: `Duplicate series pick: ${seriesId}` });
+      }
+      submittedSeriesIds.add(seriesId);
 
-          const matchingSeries = allSeriesById.get(seriesId);
+      const matchingSeries = allSeriesById.get(seriesId);
 
-          if (!matchingSeries) {
-            return res.status(400).json({ error: `Series not found: ${seriesId}` });
-          }
+      if (!matchingSeries) {
+        return res.status(400).json({ error: `Series not found: ${seriesId}` });
+      }
 
-          const effectiveStatus =
-            matchingSeries.computedStatus || getEffectiveSeriesStatus(matchingSeries);
+      const effectiveStatus =
+        matchingSeries.computedStatus || getEffectiveSeriesStatus(matchingSeries);
 
-          if (effectiveStatus !== "OPEN") {
-            return res.status(400).json({
-              error: `Series is locked and can no longer be edited: ${matchingSeries.matchupLabel}`
-            });
-          }
+      if (effectiveStatus !== "OPEN") {
+        return res.status(400).json({
+          error: `Series is locked and can no longer be edited: ${matchingSeries.matchupLabel}`
+        });
+      }
 
-          const validTeams = [matchingSeries.higherSeedTeam, matchingSeries.lowerSeedTeam];
+      const validTeams = [
+        String(matchingSeries.higherSeedTeam || "").trim().toUpperCase(),
+        String(matchingSeries.lowerSeedTeam || "").trim().toUpperCase()
+      ];
 
-          if (!validTeams.includes(pickTeam)) {
-            return res.status(400).json({ error: `Invalid team for series ${seriesId}` });
-          }
+      if (!validTeams.includes(pickTeam)) {
+        return res.status(400).json({ error: `Invalid team for series ${seriesId}` });
+      }
 
-          if (!Number.isFinite(confidence) || !allowedConfidenceValues.includes(confidence)) {
-            return res.status(400).json({
-              error: `Invalid confidence value for round ${round}`
-            });
-          }
+      if (!Number.isFinite(confidence) || !allowedConfidenceValues.includes(confidence)) {
+        return res.status(400).json({
+          error: `Invalid confidence value for round ${round}`
+        });
+      }
 
-          if (![4, 5, 6, 7].includes(predictedGames)) {
-            return res.status(400).json({ error: "Predicted games must be 4, 5, 6, or 7" });
-          }
+      if (![4, 5, 6, 7].includes(predictedGames)) {
+        return res.status(400).json({ error: "Predicted games must be 4, 5, 6, or 7" });
+      }
 
-          submittedOpenPicks.push({
-            seriesId,
-            pickTeam,
-            confidence,
-            predictedGames,
-            winnerCorrect: null,
-            bonusPoints: 0,
-            pointsEarned: 0
-          });
-        }
+      submittedOpenPicks.push({
+        seriesId,
+        pickTeam,
+        confidence,
+        predictedGames,
+        winnerCorrect: null,
+        bonusPoints: 0,
+        pointsEarned: 0
+      });
+    }
 
-        const mergedPickBySeriesId = new Map();
+    const submittedConfidenceValues = submittedOpenPicks.map((p) => Number(p.confidence));
 
-        for (const series of lockedSeries) {
-          const seriesId = String(series.seriesId);
-          const existingPick = existingPickBySeriesId.get(seriesId);
+    if (new Set(submittedConfidenceValues).size !== submittedConfidenceValues.length) {
+      return res.status(400).json({
+        error: "Confidence values must be unique among currently open series"
+      });
+    }
 
-          if (!existingPick) {
-            continue;
-          }
+    for (const value of submittedConfidenceValues) {
+      if (!allowedConfidenceValues.includes(value)) {
+        return res.status(400).json({
+          error: `Confidence values must come from: ${allowedConfidenceValues.join(", ")}`
+        });
+      }
+    }
 
-          mergedPickBySeriesId.set(seriesId, {
-            seriesId,
-            pickTeam: String(existingPick.pickTeam || "").trim().toUpperCase(),
-            confidence: Number(existingPick.confidence),
-            predictedGames: Number(existingPick.predictedGames),
-            winnerCorrect:
-              existingPick.winnerCorrect === undefined ? null : existingPick.winnerCorrect,
-            bonusPoints: Number(existingPick.bonusPoints || 0),
-            pointsEarned: Number(existingPick.pointsEarned || 0)
-          });
-        }
+    const mergedPickBySeriesId = new Map();
 
-        for (const pick of submittedOpenPicks) {
-          mergedPickBySeriesId.set(String(pick.seriesId), pick);
-        }
+    for (const series of lockedSeries) {
+      const seriesId = getSeriesKey(series);
+      const existingPick = existingPickBySeriesId.get(seriesId);
 
-        const mergedPicks = allSeries
-          .map((series) => mergedPickBySeriesId.get(String(series.seriesId)) || null)
-          .filter(Boolean);
+      if (!existingPick) continue;
 
-        const confidenceValues = mergedPicks.map((p) => Number(p.confidence));
+      mergedPickBySeriesId.set(seriesId, {
+        seriesId,
+        pickTeam: String(existingPick.pickTeam || "").trim().toUpperCase(),
+        confidence: Number(existingPick.confidence),
+        predictedGames: Number(existingPick.predictedGames),
+        winnerCorrect:
+          existingPick.winnerCorrect === undefined ? null : existingPick.winnerCorrect,
+        bonusPoints: Number(existingPick.bonusPoints || 0),
+        pointsEarned: Number(existingPick.pointsEarned || 0)
+      });
+    }
 
-        if (new Set(confidenceValues).size !== confidenceValues.length) {
-          return res.status(400).json({
-            error: "Confidence values must be unique within this round"
-          });
-        }
+    for (const pick of submittedOpenPicks) {
+      mergedPickBySeriesId.set(String(pick.seriesId), pick);
+    }
 
-        for (const value of confidenceValues) {
-          if (!allowedConfidenceValues.includes(value)) {
-            return res.status(400).json({
-              error: `Confidence values must come from: ${allowedConfidenceValues.join(", ")}`
-            });
-          }
-        }
-
+    const mergedPicks = allSeries
+      .map((series) => mergedPickBySeriesId.get(getSeriesKey(series)) || null)
+      .filter(Boolean);
 
     const updatePayload = {
       username,
@@ -434,7 +432,7 @@ router.post("/mypicks", requireAuth, requirePasswordChangeCleared, async (req, r
       round,
       picks: mergedPicks,
       submittedAt: new Date(),
-      totalPoints: 0
+      totalPoints: existingDoc?.totalPoints || 0
     };
 
     if (round === 4) {

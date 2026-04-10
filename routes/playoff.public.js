@@ -206,15 +206,24 @@ router.get("/leaderboard/season", requireAuth, requirePasswordChangeCleared, asy
       const username = String(doc.username || "").trim();
       if (!username) continue;
 
+      const picks = Array.isArray(doc.picks) ? doc.picks : [];
+
+      const docCorrectWinners = picks.filter((p) => p.winnerCorrect === true).length;
+      const docBonusPoints = picks.reduce((sum, p) => sum + Number(p.bonusPoints || 0), 0);
+
       const existing = totalsMap.get(username) || {
         username,
         totalPoints: 0,
+        correctWinners: 0,
+        bonusPoints: 0,
         roundsPlayed: 0,
         tiebreakerPrediction: null,
         tiebreakerSubmittedAt: null
       };
 
       existing.totalPoints += Number(doc.totalPoints || 0);
+      existing.correctWinners += docCorrectWinners;
+      existing.bonusPoints += docBonusPoints;
       existing.roundsPlayed += 1;
 
       if (Number(doc.round) === 4) {
@@ -238,8 +247,12 @@ router.get("/leaderboard/season", requireAuth, requirePasswordChangeCleared, asy
       : null;
 
     leaderboard.sort((a, b) => {
-      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+      // #1 Total Points
+      if (b.totalPoints !== a.totalPoints) {
+        return b.totalPoints - a.totalPoints;
+      }
 
+      // #2 Tiebreaker score (closest to actual)
       if (Number.isFinite(actualTiebreakerPoints)) {
         const diffA = Number.isFinite(a.tiebreakerPrediction)
           ? Math.abs(a.tiebreakerPrediction - actualTiebreakerPoints)
@@ -249,9 +262,22 @@ router.get("/leaderboard/season", requireAuth, requirePasswordChangeCleared, asy
           ? Math.abs(b.tiebreakerPrediction - actualTiebreakerPoints)
           : Number.POSITIVE_INFINITY;
 
-        if (diffA !== diffB) return diffA - diffB;
+        if (diffA !== diffB) {
+          return diffA - diffB;
+        }
       }
 
+      // #3 Correct Winners
+      if (b.correctWinners !== a.correctWinners) {
+        return b.correctWinners - a.correctWinners;
+      }
+
+      // #4 Bonus Points
+      if (b.bonusPoints !== a.bonusPoints) {
+        return b.bonusPoints - a.bonusPoints;
+      }
+
+      // #5 Earlier tiebreaker submission time
       const timeA = a.tiebreakerSubmittedAt
         ? new Date(a.tiebreakerSubmittedAt).getTime()
         : Number.POSITIVE_INFINITY;
@@ -260,14 +286,23 @@ router.get("/leaderboard/season", requireAuth, requirePasswordChangeCleared, asy
         ? new Date(b.tiebreakerSubmittedAt).getTime()
         : Number.POSITIVE_INFINITY;
 
-      if (timeA !== timeB) return timeA - timeB;
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
 
+      // #6 Username alphabetical
       return a.username.localeCompare(b.username);
     });
 
     const ranked = leaderboard.map((entry, index) => ({
       rank: index + 1,
-      ...entry
+      username: entry.username,
+      totalPoints: entry.totalPoints,
+      correctWinners: entry.correctWinners,
+      bonusPoints: entry.bonusPoints,
+      roundsPlayed: entry.roundsPlayed,
+      tiebreakerPrediction: entry.tiebreakerPrediction,
+      tiebreakerSubmittedAt: entry.tiebreakerSubmittedAt
     }));
 
     return res.json({
@@ -340,8 +375,6 @@ router.get("/leaderboard", requireAuth, requirePasswordChangeCleared, async (req
     console.error("GET /api/public/leaderboard error:", err);
     return res.status(500).json({ error: "Server error" });
   }
-
-
 });
 
 module.exports = router;
