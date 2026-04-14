@@ -106,8 +106,10 @@
     }
 
     try {
-      const res = await fetch("/api/notifications/status");
-      const data = await res.json();
+        const res = await fetch("/api/notifications/status", {
+          credentials: "include"
+        });
+        const data = await res.json();
 
       setNotificationUi({
         enabled: Boolean(data.enabled),
