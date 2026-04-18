@@ -286,13 +286,15 @@
   }
 
   function getSelectedConfidenceMap() {
-    const cards = document.querySelectorAll('.series-card[data-status="OPEN"]');
+    const cards = document.querySelectorAll(".series-card");
     const selectedMap = new Map();
 
     cards.forEach((card) => {
       const seriesId = card.dataset.seriesId;
       const select = card.querySelector(".confidence");
-      const value = Number(select?.value);
+      if (!seriesId || !select) return;
+
+      const value = Number(select.value);
 
       if (Number.isFinite(value) && value > 0) {
         selectedMap.set(seriesId, value);
@@ -303,11 +305,11 @@
   }
 
   function refreshConfidenceOptions() {
-    const cards = document.querySelectorAll('.series-card[data-status="OPEN"]');
+    const openCards = document.querySelectorAll('.series-card[data-status="OPEN"]');
     const selectedMap = getSelectedConfidenceMap();
     const allowedConfidenceValues = getAllowedConfidenceValues(Number(roundSelect.value));
 
-    cards.forEach((card) => {
+    openCards.forEach((card) => {
       const seriesId = card.dataset.seriesId;
       const select = card.querySelector(".confidence");
       if (!select) return;
@@ -323,9 +325,10 @@
         `<option value="">Select</option>`,
         ...allowedConfidenceValues
           .filter((num) => !usedByOthers.has(num) || num === currentValue)
-          .map((num) => `
-            <option value="${num}" ${currentValue === num ? "selected" : ""}>${num}</option>
-          `)
+          .map(
+            (num) =>
+              `<option value="${num}" ${currentValue === num ? "selected" : ""}>${num}</option>`
+          )
       ].join("");
 
       select.innerHTML = optionsHTML;
