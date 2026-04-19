@@ -386,7 +386,7 @@ router.post("/mypicks", requireAuth, requirePasswordChangeCleared, async (req, r
 
     if (new Set(submittedConfidenceValues).size !== submittedConfidenceValues.length) {
       return res.status(400).json({
-        error: "Confidence values must be unique among currently open series"
+        error: "Confidence values must be unique across your picks for this round"
       });
     }
 
@@ -425,6 +425,22 @@ router.post("/mypicks", requireAuth, requirePasswordChangeCleared, async (req, r
     const mergedPicks = allSeries
       .map((series) => mergedPickBySeriesId.get(getSeriesKey(series)) || null)
       .filter(Boolean);
+
+    const mergedConfidenceValues = mergedPicks.map((p) => Number(p.confidence));
+
+    if (new Set(mergedConfidenceValues).size !== mergedConfidenceValues.length) {
+      return res.status(400).json({
+        error: "Confidence values already used on locked series cannot be reused"
+      });
+    }
+
+    for (const value of mergedConfidenceValues) {
+      if (!allowedConfidenceValues.includes(value)) {
+        return res.status(400).json({
+          error: `Confidence values must come from: ${allowedConfidenceValues.join(", ")}`
+        });
+      }
+    }
 
     const updatePayload = {
       username,
