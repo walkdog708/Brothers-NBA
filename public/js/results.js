@@ -191,18 +191,6 @@
     return currentUserThemeMap.get(key) || USER_COLOR_THEMES[0];
   }
 
-  function getUserInitials(username) {
-    const parts = String(username || "")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-
-    if (!parts.length) return "?";
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-
   function clearTiebreakerSummary() {
     if (!tiebreakerSummaryContainer) return;
     tiebreakerSummaryContainer.classList.add("hidden");
@@ -564,7 +552,6 @@
         const sortedSeriesList = sortSeriesByConfidence(seriesList, picksMap);
         const tiebreakerMeta = getEntryTiebreakerMeta(entry, currentRound, currentAllResultsData);
         const userTheme = getUserColorTheme(entry.username);
-        const userInitials = getUserInitials(entry.username);
 
         const tiebreakerHeaderLine = tiebreakerMeta.show
           ? `
@@ -587,9 +574,6 @@
                 <div class="flex flex-col items-center gap-2 shrink-0">
                   <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-white text-sm font-bold">
                     ${idx + 1}
-                  </span>
-                  <span class="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-full px-2 text-xs font-extrabold ${userTheme.chip}">
-                    ${userInitials}
                   </span>
                 </div>
 
@@ -666,7 +650,6 @@
     const winnerExists = !!winner;
     const isCorrect = winnerExists && pickTeam && pickTeam === winner;
     const userTheme = getUserColorTheme(entry?.username);
-    const userInitials = getUserInitials(entry?.username);
 
     const resultTone = !winnerExists
       ? "bg-amber-50 text-amber-800 border border-amber-200"
@@ -681,9 +664,6 @@
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-full px-2 text-xs font-extrabold shrink-0 ${userTheme.chip}">
-                ${userInitials}
-              </span>
               <div class="inline-flex max-w-full items-center rounded-full px-3 py-1 text-sm font-bold truncate ${userTheme.chip}">
                 ${username}
               </div>
