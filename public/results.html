@@ -106,11 +106,13 @@
     <section class="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
         <div class="px-4 sm:px-6 py-5 border-b border-slate-200 bg-slate-50">
             <h2 class="text-xl font-bold text-slate-900">Round Results</h2>
-            <p class="mt-1 text-sm text-slate-600">Green for the win, Red for the losses. When the round is open, you can only view your picks, winners, bonuses, and points earned. When the round
-                is LOCKED (all matchups are locked), you'll be able to view everyone's selections, including their tiebreaker in the 4th round! Predicted, Actual, Confidence and Bonus info will displayed for each player!</p>
+            <p class="mt-1 text-sm text-slate-600">
+                Green for the win, Red for the losses. When the round is open, you can only view your picks, winners, bonuses, and points earned.
+                When the round is LOCKED, you'll be able to view everyone's selections. Use the All Results toggle to switch between a matchup-first
+                view and a player-first view.
+            </p>
         </div>
 
-        <!-- Tabs -->
         <div class="px-4 sm:px-6 pt-4 bg-slate-50 border-b border-slate-200">
             <div class="flex flex-wrap gap-2">
                 <button
@@ -134,22 +136,19 @@
             </div>
         </div>
 
-        <!-- MY RESULTS VIEW -->
         <div id="myResultsView">
-            <!-- Mobile cards -->
             <div id="resultsCardsMobile" class="block md:hidden p-4 space-y-3">
                 <div class="rounded-xl border border-slate-200 bg-white px-4 py-6 text-center text-slate-500">
                     No results loaded.
                 </div>
             </div>
 
-            <!-- Desktop table -->
             <div class="hidden md:block overflow-x-auto">
                 <table class="min-w-full text-xs lg:text-sm">
                     <thead class="bg-slate-100 text-slate-700">
                     <tr>
                         <th class="px-3 lg:px-4 py-3 text-left font-semibold border-b border-slate-200">Matchup</th>
-                        <th class="px-3 py-3 text-center font-semibold border-b border-slate-200 whitespace-nowrap">Pick</th>
+                        <th class="px-3 py-3 text-center font-semibold border-b border-slate-200 whitespace-nowrap">Pred</th>
                         <th class="px-3 py-3 text-center font-semibold border-b border-slate-200 whitespace-nowrap">Act</th>
                         <th class="px-3 py-3 text-center font-semibold border-b border-slate-200 whitespace-nowrap">Conf</th>
                         <th class="px-3 py-3 text-center font-semibold border-b border-slate-200 whitespace-nowrap">Bonus</th>
@@ -167,10 +166,28 @@
             </div>
         </div>
 
-        <!-- ALL RESULTS VIEW -->
         <div id="allResultsView" class="hidden">
             <div class="p-4 sm:p-6 space-y-4">
                 <div id="tiebreakerSummaryContainer" class="hidden"></div>
+
+                <div id="allResultsModeBar" class="hidden">
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-2 inline-flex gap-2">
+                        <button
+                                id="allResultsModeMatchup"
+                                type="button"
+                                class="rounded-xl px-4 py-2 text-sm font-semibold bg-slate-900 text-white shadow-sm"
+                        >
+                            By Matchup
+                        </button>
+                        <button
+                                id="allResultsModePlayer"
+                                type="button"
+                                class="rounded-xl px-4 py-2 text-sm font-semibold bg-white text-slate-700 border border-slate-200"
+                        >
+                            By Player
+                        </button>
+                    </div>
+                </div>
 
                 <div id="allResultsContainer" class="space-y-4">
                     <div class="rounded-xl border border-slate-200 bg-white px-4 py-6 text-center text-slate-500">
