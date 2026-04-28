@@ -718,7 +718,13 @@
   function renderAllResultsByMatchup(entries, seriesList) {
     const sortedEntries = getSortedEntries(entries);
 
-    return seriesList
+    const helperText = `
+      <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+        Tap a matchup below to expand and view everyone’s picks.
+      </div>
+    `;
+
+    return helperText + seriesList
       .map((series, idx) => {
         const higher = String(series.higherSeedTeam || "").trim().toUpperCase();
         const lower = String(series.lowerSeedTeam || "").trim().toUpperCase();
