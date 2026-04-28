@@ -739,7 +739,7 @@
         });
 
         return `
-          <details class="group rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden" ${idx === 0 ? "open" : ""}>
+          <details class="group rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <summary class="list-none cursor-pointer px-4 sm:px-6 py-4 bg-slate-50 border-b border-slate-200">
               <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="min-w-0">
