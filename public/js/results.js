@@ -309,7 +309,15 @@
     return `<img src="${team.logo}" alt="${abbr}" class="${size} object-contain shrink-0">`;
   }
 
-  function pickBadgeClass(isPicked, isWinner, winnerExists) {
+  function pickBadgeClass(isPicked, isWinner, winnerExists, showActualResult = false) {
+    if (showActualResult && winnerExists) {
+      if (isWinner) {
+        return "border-2 border-green-700 bg-green-300 text-green-950 font-extrabold shadow";
+      }
+
+      return "border-2 border-red-700 bg-red-300 text-red-950 font-extrabold shadow";
+    }
+
     if (!isPicked) {
       return "border border-slate-300 bg-slate-50 text-slate-800";
     }
@@ -331,6 +339,7 @@
     const winner = String(series.winnerTeam || "").trim().toUpperCase();
     const picked = String(pick?.pickTeam || "").trim().toUpperCase();
     const winnerExists = !!winner;
+    const showActualResult = !pick && winnerExists;
 
     const higherPicked = picked && picked === higher;
     const lowerPicked = picked && picked === lower;
@@ -341,23 +350,19 @@
     return `
       <div class="min-w-[220px] lg:min-w-[260px]">
         <div class="flex items-center gap-2 lg:gap-3">
-          <div class="flex items-center gap-2 rounded-xl px-2.5 lg:px-3 py-2 ${pickBadgeClass(higherPicked, higherWon, winnerExists)}">
+          <div class="flex items-center gap-2 rounded-xl px-2.5 lg:px-3 py-2 ${pickBadgeClass(higherPicked, higherWon, winnerExists, showActualResult)}">
             ${teamLogoHTML(higher, "w-7 h-7 lg:w-8 lg:h-8")}
             <span class="font-bold text-xs lg:text-sm">${higher || "-"}</span>
           </div>
 
           <span class="text-slate-400 font-semibold text-[10px] lg:text-xs shrink-0">vs</span>
 
-          <div class="flex items-center gap-2 rounded-xl px-2.5 lg:px-3 py-2 ${pickBadgeClass(lowerPicked, lowerWon, winnerExists)}">
+          <div class="flex items-center gap-2 rounded-xl px-2.5 lg:px-3 py-2 ${pickBadgeClass(lowerPicked, lowerWon, winnerExists, showActualResult)}">
             ${teamLogoHTML(lower, "w-7 h-7 lg:w-8 lg:h-8")}
             <span class="font-bold text-xs lg:text-sm">${lower || "-"}</span>
           </div>
         </div>
 
-        <div class="mt-1.5 text-[11px] lg:text-xs text-slate-500">
-          Pick:
-          <span class="font-bold text-slate-700">${picked || "-"}</span>
-        </div>
       </div>
     `;
   }
