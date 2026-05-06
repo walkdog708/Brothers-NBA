@@ -345,42 +345,50 @@
 
   async function detectCurrentOpenRound() {
     const rounds = [1, 2, 3, 4];
-    let latestRoundWithOpenSeries = null;
+
+    let highestRoundWithAnySeries = null;
+    let firstRoundWithOpenSeries = null;
 
     for (const round of rounds) {
       try {
-        const res = await fetch(
-          `/api/playoff/series/open?season=${encodeURIComponent(activeSeason)}&round=${encodeURIComponent(round)}`
-        );
+        const [seriesRes, picksRes] = await Promise.all([
+          fetch(
+            `/api/playoff/series/open?season=${encodeURIComponent(activeSeason)}&round=${encodeURIComponent(round)}`
+          ),
+          fetch(
+            `/api/playoff/mypicks?season=${encodeURIComponent(activeSeason)}&round=${encodeURIComponent(round)}`
+          )
+        ]);
 
-        if (!res.ok) continue;
+        const seriesData = seriesRes.ok ? await seriesRes.json() : {};
+        const picksData = picksRes.ok ? await picksRes.json() : {};
 
-        const data = await res.json();
-
-        const openSeries =
-          (Array.isArray(data.series) && data.series) ||
-          (Array.isArray(data.allSeries) && data.allSeries) ||
-          (Array.isArray(data.data) && data.data) ||
+        const allSeries =
+          (Array.isArray(picksData.series) && picksData.series) ||
+          (Array.isArray(seriesData.series) && seriesData.series) ||
+          (Array.isArray(seriesData.allSeries) && seriesData.allSeries) ||
+          (Array.isArray(seriesData.data) && seriesData.data) ||
           [];
 
-        if (openSeries.length > 0) {
-          latestRoundWithOpenSeries = String(round);
+        if (allSeries.length > 0) {
+          highestRoundWithAnySeries = String(round);
         }
 
-        const roundLocked = !!(data.roundLocked ?? data.locked ?? false);
-        const hasOpenSeries = openSeries.some(
+        const hasOpenSeries = allSeries.some(
           (s) => (s.computedStatus || "OPEN") === "OPEN"
         );
 
-        if (!roundLocked && hasOpenSeries) {
-          return String(round);
+        if (hasOpenSeries && !firstRoundWithOpenSeries) {
+          firstRoundWithOpenSeries = String(round);
         }
       } catch (err) {
         console.error(`detectCurrentOpenRound error for round ${round}:`, err);
       }
     }
 
-    return latestRoundWithOpenSeries || roundSelect.value || "1";
+    // Prefer the first round that still has open picks.
+    // If no rounds are open, show the latest round that exists.
+    return firstRoundWithOpenSeries || highestRoundWithAnySeries || roundSelect.value || "1";
   }
 
   function renderTiebreaker(existingPicksDoc, roundLocked) {
