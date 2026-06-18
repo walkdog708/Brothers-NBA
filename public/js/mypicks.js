@@ -29,6 +29,13 @@
   const roundSelect = document.getElementById("round");
 
 
+  const roundScoringTitle = document.getElementById("roundScoringTitle");
+  const roundConfidenceValues = document.getElementById("roundConfidenceValues");
+  const roundBonusValues = document.getElementById("roundBonusValues");
+
+
+
+
   let currentSeries = [];
   let currentRoundLocked = false;
   let activeSeason = 2026;
@@ -53,6 +60,139 @@
     if (r === 4) return [20];
 
     return [];
+  }
+
+  function getRoundBonusValues(round) {
+    const r = Number(round);
+
+    if (r === 1) {
+      return [
+        "Exact: +4",
+        "Off by 1: +2",
+        "Off by 2: +1",
+        "Off by 3+: 0"
+      ];
+    }
+
+    if (r === 2) {
+      return [
+        "Exact: +8",
+        "Off by 1: +4",
+        "Off by 2: +2",
+        "Off by 3+: 0"
+      ];
+    }
+
+    if (r === 3) {
+      return [
+        "Exact: +16",
+        "Off by 1: +8",
+        "Off by 2: +4",
+        "Off by 3+: 0"
+      ];
+    }
+
+    if (r === 4) {
+      return [
+        "Exact: +40",
+        "Off by 1: +20",
+        "Off by 2: +10",
+        "Off by 3+: 0"
+      ];
+    }
+
+    return [];
+  }
+
+  function getRoundScoringDetails(round) {
+    const r = Number(round);
+    const confidenceValues = getAllowedConfidenceValues(r);
+
+    const details = {
+      1: {
+        title: "Round 1 - First Round Scoring",
+        description:
+          "There are 8 first-round series. Assign each confidence value once, from 1 through 8.",
+        winnerScoring:
+          "If your selected team wins the series, you earn the confidence value assigned to that series.",
+        bonusScoring:
+          "Bonus points are earned when you correctly predict how many games the series will last."
+      },
+      2: {
+        title: "Round 2 - Conference Semifinals Scoring",
+        description:
+          "There are 4 conference semifinal series. Assign each confidence value once: 3, 6, 9, and 12.",
+        winnerScoring:
+          "If your selected team wins the series, you earn the confidence value assigned to that series.",
+        bonusScoring:
+          "Bonus points are earned when you correctly predict how many games the series will last."
+      },
+      3: {
+        title: "Round 3 - Conference Finals Scoring",
+        description:
+          "There are 2 conference finals series. Assign each confidence value once: 10 and 20.",
+        winnerScoring:
+          "If your selected team wins the series, you earn the confidence value assigned to that series.",
+        bonusScoring:
+          "Bonus points are earned when you correctly predict how many games the series will last."
+      },
+      4: {
+        title: "Round 4 - NBA Finals Scoring",
+        description:
+          "There is 1 NBA Finals series. The confidence value for this round is 20.",
+        winnerScoring:
+          "If your selected team wins the NBA Finals, you earn 20 points.",
+        bonusScoring:
+          "Bonus points are earned when you correctly predict how many games the NBA Finals will last. The Finals tiebreaker is also entered in this round."
+      }
+    };
+
+    return {
+      ...(details[r] || {
+        title: "Round Scoring",
+        description: "Select a round to view scoring details.",
+        winnerScoring: "—",
+        bonusScoring: "—"
+      }),
+      confidenceValues
+    };
+  }
+
+  function renderRoundScoringInfo() {
+    const round = Number(roundSelect.value);
+    const confidenceValues = getAllowedConfidenceValues(round);
+    const bonusValues = getRoundBonusValues(round);
+
+    if (roundScoringTitle) {
+      const roundNames = {
+        1: "Round 1 Scoring",
+        2: "Round 2 Scoring",
+        3: "Round 3 Scoring",
+        4: "Round 4 Scoring"
+      };
+
+      roundScoringTitle.textContent = roundNames[round] || "Round Scoring";
+    }
+
+    if (roundConfidenceValues) {
+      roundConfidenceValues.innerHTML = confidenceValues.length
+        ? confidenceValues.map((value) => `
+            <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center">
+              ${value}
+            </div>
+          `).join("")
+        : "—";
+    }
+
+    if (roundBonusValues) {
+      roundBonusValues.innerHTML = bonusValues.length
+        ? bonusValues.map((value) => `
+            <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center">
+              ${value}
+            </div>
+          `).join("")
+        : "—";
+    }
   }
 
   function showMessage(text, type) {
@@ -636,6 +776,8 @@
     roundLoadToken += 1;
     const token = roundLoadToken;
 
+    renderRoundScoringInfo();
+
     await loadRound();
 
     if (token !== roundLoadToken) return;
@@ -647,6 +789,8 @@
 
   const detectedRound = await detectCurrentOpenRound();
   roundSelect.value = detectedRound;
+
+  renderRoundScoringInfo();
 
   await loadRound();
 })();
